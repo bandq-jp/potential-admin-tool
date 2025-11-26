@@ -23,13 +23,6 @@ Created by: bandq
 
 **0.5次面談ログ管理システム（社内向けAdminツール）**を開発するものである。
 
-### 1.3 採用技術スタック
-
-- フロントエンド：Next.js 16 / React / TypeScript / shadcn/ui / Tailwind CSS
-- バックエンド：FastAPI（Python）
-- データベース：Supabase（PostgreSQL）
-- Pythonツールチェーン：uv（依存管理・実行）
-
 ### 1.1 背景
 
 - CAのポテンシャル採用で
@@ -68,6 +61,14 @@ Created by: bandq
     - 0.5導入前後での一次〜最終の面接人数・面接工数の変化
     - 0.5評価スコアと、一次・最終・内定・入社・ミスマッチの相関
     - エージェント別の通過率／ミスマッチ率と、送客傾向の違い
+
+### 1.3 採用技術スタック
+
+- フロントエンド：Next.js 16 / React / TypeScript / shadcn/ui / Tailwind CSS
+- バックエンド：FastAPI（Python）
+- データベース：Supabase（PostgreSQL）
+- JSランタイム／パッケージマネージャ：Bun（フロントエンド開発・ビルド）
+- Pythonツールチェーン：uv（依存管理・実行）
 
 ---
 
@@ -447,6 +448,7 @@ Criteria は JobPosition に紐づく。**
 
 - 技術スタック：
     - 管理画面：Next.js 16（React / TypeScript）＋ shadcn/ui ＋ Tailwind CSS
+    - JSランタイム／パッケージ管理：Bun
     - バックエンド：FastAPI（Python）
     - DB：Supabase（PostgreSQL）
     - Pythonパッケージ管理：uv
