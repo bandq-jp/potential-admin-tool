@@ -23,6 +23,13 @@ Created by: bandq
 
 **0.5次面談ログ管理システム（社内向けAdminツール）**を開発するものである。
 
+### 1.3 採用技術スタック
+
+- フロントエンド：Next.js 16 / React / TypeScript / shadcn/ui / Tailwind CSS
+- バックエンド：FastAPI（Python）
+- データベース：Supabase（PostgreSQL）
+- Pythonツールチェーン：uv（依存管理・実行）
+
 ### 1.1 背景
 
 - CAのポテンシャル採用で
@@ -439,8 +446,10 @@ Criteria は JobPosition に紐づく。**
 ## 6. 非機能要件（Non-Functional Requirements）
 
 - 技術スタック：
-    - DB：PostgreSQL系（Supabase歓迎）
-    - 管理画面：React系（Next.js等）
+    - 管理画面：Next.js 16（React / TypeScript）＋ shadcn/ui ＋ Tailwind CSS
+    - バックエンド：FastAPI（Python）
+    - DB：Supabase（PostgreSQL）
+    - Pythonパッケージ管理：uv
 - UI：
     - 管理画面テンプレ（MUI / Ant Design / Tailwind UI等）活用、独自デザイン最小。
 - 認証・セキュリティ：
