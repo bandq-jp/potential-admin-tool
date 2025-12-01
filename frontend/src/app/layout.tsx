@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Noto_Sans_JP } from 'next/font/google';
 import { ClerkProvider } from '@clerk/nextjs';
 import { ThemeProvider } from '@/components/providers/ThemeProvider';
+import { SnackbarProvider } from '@/components/providers/SnackbarProvider';
 import './globals.css';
 
 const notoSansJP = Noto_Sans_JP({
@@ -24,7 +25,9 @@ export default function RootLayout({
     <ClerkProvider>
       <html lang="ja">
         <body className={`${notoSansJP.variable} antialiased`}>
-          <ThemeProvider>{children}</ThemeProvider>
+          <ThemeProvider>
+            <SnackbarProvider>{children}</SnackbarProvider>
+          </ThemeProvider>
         </body>
       </html>
     </ClerkProvider>

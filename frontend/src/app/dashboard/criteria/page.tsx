@@ -20,11 +20,15 @@ import {
   Divider,
   Alert,
   CircularProgress,
+  Tooltip,
 } from '@mui/material';
-import { Plus, Edit, Trash2, GripVertical } from 'lucide-react';
+import { Plus, Edit, Trash2, GripVertical, Shield } from 'lucide-react';
 import { useJobPositions } from '@/hooks/useJobPositions';
 import { useCompanies } from '@/hooks/useCompanies';
 import { useCriteria } from '@/hooks/useCriteria';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { useSnackbar } from '@/components/providers/SnackbarProvider';
+import { ApiError } from '@/lib/api';
 import type { CriteriaGroupCreate, CriteriaItemCreate } from '@/domain/entities/criteria';
 
 function CriteriaContent() {
@@ -33,6 +37,8 @@ function CriteriaContent() {
 
   const { companies } = useCompanies();
   const { jobPositions } = useJobPositions();
+  const { isAdmin, isLoading: userLoading } = useCurrentUser();
+  const { showSuccess, showError } = useSnackbar();
 
   const [selectedCompanyId, setSelectedCompanyId] = useState('');
   const [selectedPositionId, setSelectedPositionId] = useState(positionIdParam ?? '');
@@ -45,6 +51,7 @@ function CriteriaContent() {
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [targetGroupId, setTargetGroupId] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [groupFormData, setGroupFormData] = useState<Omit<CriteriaGroupCreate, 'job_position_id'>>({
     label: '',
@@ -73,12 +80,20 @@ function CriteriaContent() {
   const filteredPositions = jobPositions.filter((p) => p.company_id === selectedCompanyId);
 
   const handleOpenGroupCreate = () => {
+    if (!isAdmin) {
+      showError('管理者権限が必要です');
+      return;
+    }
     setEditingGroupId(null);
     setGroupFormData({ label: '', description: '', sort_order: criteriaGroups.length });
     setGroupDialogOpen(true);
   };
 
   const handleOpenGroupEdit = (groupId: string) => {
+    if (!isAdmin) {
+      showError('管理者権限が必要です');
+      return;
+    }
     const group = criteriaGroups.find((g) => g.id === groupId);
     if (group) {
       setEditingGroupId(groupId);
@@ -92,24 +107,62 @@ function CriteriaContent() {
   };
 
   const handleSubmitGroup = async () => {
-    if (editingGroupId) {
-      await updateGroup(editingGroupId, groupFormData);
-    } else {
-      await createGroup({
-        ...groupFormData,
-        job_position_id: selectedPositionId,
-      });
+    setIsSubmitting(true);
+    try {
+      if (editingGroupId) {
+        await updateGroup(editingGroupId, groupFormData);
+        showSuccess('大項目を更新しました');
+      } else {
+        await createGroup({
+          ...groupFormData,
+          job_position_id: selectedPositionId,
+        });
+        showSuccess('大項目を追加しました');
+      }
+      setGroupDialogOpen(false);
+    } catch (error) {
+      if (error instanceof ApiError) {
+        if (error.status === 403) {
+          showError('管理者権限が必要です');
+        } else {
+          showError(error.message);
+        }
+      } else {
+        showError('エラーが発生しました');
+      }
+    } finally {
+      setIsSubmitting(false);
     }
-    setGroupDialogOpen(false);
   };
 
   const handleDeleteGroup = async (groupId: string) => {
+    if (!isAdmin) {
+      showError('管理者権限が必要です');
+      return;
+    }
     if (confirm('この大項目と配下の中項目を削除しますか？')) {
-      await deleteGroup(groupId);
+      try {
+        await deleteGroup(groupId);
+        showSuccess('大項目を削除しました');
+      } catch (error) {
+        if (error instanceof ApiError) {
+          if (error.status === 403) {
+            showError('管理者権限が必要です');
+          } else {
+            showError(error.message);
+          }
+        } else {
+          showError('エラーが発生しました');
+        }
+      }
     }
   };
 
   const handleOpenItemCreate = (groupId: string) => {
+    if (!isAdmin) {
+      showError('管理者権限が必要です');
+      return;
+    }
     setEditingItemId(null);
     setTargetGroupId(groupId);
     const group = criteriaGroups.find((g) => g.id === groupId);
@@ -124,6 +177,10 @@ function CriteriaContent() {
   };
 
   const handleOpenItemEdit = (groupId: string, itemId: string) => {
+    if (!isAdmin) {
+      showError('管理者権限が必要です');
+      return;
+    }
     const group = criteriaGroups.find((g) => g.id === groupId);
     const item = group?.items.find((i) => i.id === itemId);
     if (item) {
@@ -143,22 +200,55 @@ function CriteriaContent() {
   const handleSubmitItem = async () => {
     if (!targetGroupId) return;
 
-    if (editingItemId) {
-      await updateItem(editingItemId, itemFormData);
-    } else {
-      await createItem({
-        ...itemFormData,
-        criteria_group_id: targetGroupId,
-      });
+    setIsSubmitting(true);
+    try {
+      if (editingItemId) {
+        await updateItem(editingItemId, itemFormData);
+        showSuccess('中項目を更新しました');
+      } else {
+        await createItem({
+          ...itemFormData,
+          criteria_group_id: targetGroupId,
+        });
+        showSuccess('中項目を追加しました');
+      }
+      setItemDialogOpen(false);
+    } catch (error) {
+      if (error instanceof ApiError) {
+        if (error.status === 403) {
+          showError('管理者権限が必要です');
+        } else {
+          showError(error.message);
+        }
+      } else {
+        showError('エラーが発生しました');
+      }
+    } finally {
+      setIsSubmitting(false);
     }
-    setItemDialogOpen(false);
   };
 
   return (
     <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4">定性要件マスタ</Typography>
+        <Box display="flex" alignItems="center" gap={2}>
+          <Typography variant="h4">定性要件マスタ</Typography>
+          {!userLoading && !isAdmin && (
+            <Chip
+              icon={<Shield size={14} />}
+              label="閲覧のみ"
+              size="small"
+              color="default"
+            />
+          )}
+        </Box>
       </Box>
+
+      {!userLoading && !isAdmin && (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          定性要件の追加・編集・削除には管理者権限が必要です
+        </Alert>
+      )}
 
       <Card sx={{ mb: 3 }}>
         <CardContent sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
@@ -197,15 +287,20 @@ function CriteriaContent() {
             ))}
           </TextField>
           {selectedPositionId && (
-            <Button
-              variant="contained"
-              startIcon={<Plus size={16} />}
-              onClick={handleOpenGroupCreate}
-              disableElevation
-              size="small"
-            >
-              大項目追加
-            </Button>
+            <Tooltip title={isAdmin ? '' : '管理者権限が必要です'}>
+              <span>
+                <Button
+                  variant="contained"
+                  startIcon={<Plus size={16} />}
+                  onClick={handleOpenGroupCreate}
+                  disableElevation
+                  size="small"
+                  disabled={!isAdmin}
+                >
+                  大項目追加
+                </Button>
+              </span>
+            </Tooltip>
           )}
         </CardContent>
       </Card>
@@ -218,14 +313,16 @@ function CriteriaContent() {
             <Typography color="text.secondary" gutterBottom>
               定性要件が設定されていません
             </Typography>
-            <Button
-              variant="outlined"
-              startIcon={<Plus size={16} />}
-              onClick={handleOpenGroupCreate}
-              sx={{ mt: 2 }}
-            >
-              最初の大項目を追加
-            </Button>
+            {isAdmin && (
+              <Button
+                variant="outlined"
+                startIcon={<Plus size={16} />}
+                onClick={handleOpenGroupCreate}
+                sx={{ mt: 2 }}
+              >
+                最初の大項目を追加
+              </Button>
+            )}
           </CardContent>
         </Card>
       ) : (
@@ -241,14 +338,16 @@ function CriteriaContent() {
               }
               subheader={group.description}
               action={
-                <Box>
-                  <IconButton size="small" onClick={() => handleOpenGroupEdit(group.id)}>
-                    <Edit size={16} />
-                  </IconButton>
-                  <IconButton size="small" onClick={() => handleDeleteGroup(group.id)}>
-                    <Trash2 size={16} />
-                  </IconButton>
-                </Box>
+                isAdmin && (
+                  <Box>
+                    <IconButton size="small" onClick={() => handleOpenGroupEdit(group.id)}>
+                      <Edit size={16} />
+                    </IconButton>
+                    <IconButton size="small" onClick={() => handleDeleteGroup(group.id)}>
+                      <Trash2 size={16} />
+                    </IconButton>
+                  </Box>
+                )
               }
             />
             <Divider />
@@ -290,22 +389,26 @@ function CriteriaContent() {
                       </Typography>
                     )}
                   </Box>
-                  <IconButton
-                    size="small"
-                    onClick={() => handleOpenItemEdit(group.id, item.id)}
-                  >
-                    <Edit size={14} />
-                  </IconButton>
+                  {isAdmin && (
+                    <IconButton
+                      size="small"
+                      onClick={() => handleOpenItemEdit(group.id, item.id)}
+                    >
+                      <Edit size={14} />
+                    </IconButton>
+                  )}
                 </Box>
               ))}
-              <Button
-                startIcon={<Plus size={14} />}
-                size="small"
-                onClick={() => handleOpenItemCreate(group.id)}
-                sx={{ mt: 1 }}
-              >
-                中項目追加
-              </Button>
+              {isAdmin && (
+                <Button
+                  startIcon={<Plus size={14} />}
+                  size="small"
+                  onClick={() => handleOpenItemCreate(group.id)}
+                  sx={{ mt: 1 }}
+                >
+                  中項目追加
+                </Button>
+              )}
             </CardContent>
           </Card>
         ))
@@ -333,14 +436,14 @@ function CriteriaContent() {
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setGroupDialogOpen(false)}>キャンセル</Button>
+          <Button onClick={() => setGroupDialogOpen(false)} disabled={isSubmitting}>キャンセル</Button>
           <Button
             variant="contained"
             onClick={handleSubmitGroup}
-            disabled={!groupFormData.label}
+            disabled={!groupFormData.label || isSubmitting}
             disableElevation
           >
-            {editingGroupId ? '更新' : '追加'}
+            {isSubmitting ? '処理中...' : (editingGroupId ? '更新' : '追加')}
           </Button>
         </DialogActions>
       </Dialog>
@@ -390,14 +493,14 @@ function CriteriaContent() {
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setItemDialogOpen(false)}>キャンセル</Button>
+          <Button onClick={() => setItemDialogOpen(false)} disabled={isSubmitting}>キャンセル</Button>
           <Button
             variant="contained"
             onClick={handleSubmitItem}
-            disabled={!itemFormData.label}
+            disabled={!itemFormData.label || isSubmitting}
             disableElevation
           >
-            {editingItemId ? '更新' : '追加'}
+            {isSubmitting ? '処理中...' : (editingItemId ? '更新' : '追加')}
           </Button>
         </DialogActions>
       </Dialog>

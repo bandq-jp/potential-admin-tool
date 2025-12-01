@@ -13,26 +13,42 @@ import {
   DialogActions,
   TextField,
   Tooltip,
+  Chip,
+  Alert,
 } from '@mui/material';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
-import { Plus, Edit, Trash2 } from 'lucide-react';
+import { Plus, Edit, Trash2, Shield } from 'lucide-react';
 import { useCompanies } from '@/hooks/useCompanies';
-import type { Company, CompanyCreate, CompanyUpdate } from '@/domain/entities/company';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { useSnackbar } from '@/components/providers/SnackbarProvider';
+import { ApiError } from '@/lib/api';
+import type { Company, CompanyCreate } from '@/domain/entities/company';
 
 export default function CompaniesPage() {
   const { companies, isLoading, createCompany, updateCompany, deleteCompany } = useCompanies();
+  const { isAdmin, isLoading: userLoading } = useCurrentUser();
+  const { showSuccess, showError } = useSnackbar();
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
   const [formData, setFormData] = useState<CompanyCreate>({ name: '', note: '' });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleOpenCreate = () => {
+    if (!isAdmin) {
+      showError('管理者権限が必要です');
+      return;
+    }
     setEditingCompany(null);
     setFormData({ name: '', note: '' });
     setDialogOpen(true);
   };
 
   const handleOpenEdit = (company: Company) => {
+    if (!isAdmin) {
+      showError('管理者権限が必要です');
+      return;
+    }
     setEditingCompany(company);
     setFormData({ name: company.name, note: company.note ?? '' });
     setDialogOpen(true);
@@ -44,17 +60,51 @@ export default function CompaniesPage() {
   };
 
   const handleSubmit = async () => {
-    if (editingCompany) {
-      await updateCompany(editingCompany.id, formData);
-    } else {
-      await createCompany(formData);
+    setIsSubmitting(true);
+    try {
+      if (editingCompany) {
+        await updateCompany(editingCompany.id, formData);
+        showSuccess('企業を更新しました');
+      } else {
+        await createCompany(formData);
+        showSuccess('企業を登録しました');
+      }
+      handleClose();
+    } catch (error) {
+      if (error instanceof ApiError) {
+        if (error.status === 403) {
+          showError('管理者権限が必要です');
+        } else {
+          showError(error.message);
+        }
+      } else {
+        showError('エラーが発生しました');
+      }
+    } finally {
+      setIsSubmitting(false);
     }
-    handleClose();
   };
 
   const handleDelete = async (id: string) => {
+    if (!isAdmin) {
+      showError('管理者権限が必要です');
+      return;
+    }
     if (confirm('この企業を削除しますか？')) {
-      await deleteCompany(id);
+      try {
+        await deleteCompany(id);
+        showSuccess('企業を削除しました');
+      } catch (error) {
+        if (error instanceof ApiError) {
+          if (error.status === 403) {
+            showError('管理者権限が必要です');
+          } else {
+            showError(error.message);
+          }
+        } else {
+          showError('エラーが発生しました');
+        }
+      }
     }
   };
 
@@ -74,15 +124,27 @@ export default function CompaniesPage() {
       sortable: false,
       renderCell: (params) => (
         <Box>
-          <Tooltip title="編集">
-            <IconButton size="small" onClick={() => handleOpenEdit(params.row)}>
-              <Edit size={16} />
-            </IconButton>
+          <Tooltip title={isAdmin ? '編集' : '管理者権限が必要'}>
+            <span>
+              <IconButton
+                size="small"
+                onClick={() => handleOpenEdit(params.row)}
+                disabled={!isAdmin}
+              >
+                <Edit size={16} />
+              </IconButton>
+            </span>
           </Tooltip>
-          <Tooltip title="削除">
-            <IconButton size="small" onClick={() => handleDelete(params.row.id)}>
-              <Trash2 size={16} />
-            </IconButton>
+          <Tooltip title={isAdmin ? '削除' : '管理者権限が必要'}>
+            <span>
+              <IconButton
+                size="small"
+                onClick={() => handleDelete(params.row.id)}
+                disabled={!isAdmin}
+              >
+                <Trash2 size={16} />
+              </IconButton>
+            </span>
           </Tooltip>
         </Box>
       ),
@@ -92,22 +154,43 @@ export default function CompaniesPage() {
   return (
     <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4">クライアント企業</Typography>
-        <Button
-          variant="contained"
-          startIcon={<Plus size={18} />}
-          onClick={handleOpenCreate}
-          disableElevation
-        >
-          新規登録
-        </Button>
+        <Box display="flex" alignItems="center" gap={2}>
+          <Typography variant="h4">クライアント企業</Typography>
+          {!userLoading && !isAdmin && (
+            <Chip
+              icon={<Shield size={14} />}
+              label="閲覧のみ"
+              size="small"
+              color="default"
+            />
+          )}
+        </Box>
+        <Tooltip title={isAdmin ? '' : '管理者権限が必要です'}>
+          <span>
+            <Button
+              variant="contained"
+              startIcon={<Plus size={18} />}
+              onClick={handleOpenCreate}
+              disableElevation
+              disabled={!isAdmin}
+            >
+              新規登録
+            </Button>
+          </span>
+        </Tooltip>
       </Box>
+
+      {!userLoading && !isAdmin && (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          企業の追加・編集・削除には管理者権限が必要です
+        </Alert>
+      )}
 
       <Card>
         <DataGrid
           rows={companies}
           columns={columns}
-          loading={isLoading}
+          loading={isLoading || userLoading}
           pageSizeOptions={[10, 25, 50]}
           initialState={{
             pagination: { paginationModel: { pageSize: 25 } },
@@ -142,18 +225,17 @@ export default function CompaniesPage() {
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleClose}>キャンセル</Button>
+          <Button onClick={handleClose} disabled={isSubmitting}>キャンセル</Button>
           <Button
             variant="contained"
             onClick={handleSubmit}
-            disabled={!formData.name}
+            disabled={!formData.name || isSubmitting}
             disableElevation
           >
-            {editingCompany ? '更新' : '登録'}
+            {isSubmitting ? '処理中...' : (editingCompany ? '更新' : '登録')}
           </Button>
         </DialogActions>
       </Dialog>
     </Box>
   );
 }
-

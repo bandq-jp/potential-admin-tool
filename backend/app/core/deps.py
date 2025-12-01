@@ -134,11 +134,14 @@ async def get_current_user(
         last_name = clerk_user.get("last_name", "") or ""
         name = f"{first_name} {last_name}".strip() or "ユーザー"
 
+        all_users = await user_repo.find_all()
+        role = UserRole.ADMIN if len(all_users) == 0 else UserRole.INTERVIEWER
+
         new_user = UserCreate(
             clerk_id=clerk_user_id,
             email=email,
             name=name,
-            role=UserRole.INTERVIEWER,
+            role=role,
         )
         
         try:

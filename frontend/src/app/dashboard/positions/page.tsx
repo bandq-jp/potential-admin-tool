@@ -15,17 +15,23 @@ import {
   MenuItem,
   Chip,
   Tooltip,
+  Alert,
 } from '@mui/material';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
-import { Plus, Edit, Settings } from 'lucide-react';
+import { Plus, Edit, Settings, Shield } from 'lucide-react';
 import Link from 'next/link';
 import { useJobPositions } from '@/hooks/useJobPositions';
 import { useCompanies } from '@/hooks/useCompanies';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { useSnackbar } from '@/components/providers/SnackbarProvider';
+import { ApiError } from '@/lib/api';
 import type { JobPosition, JobPositionCreate } from '@/domain/entities/jobPosition';
 
 export default function PositionsPage() {
   const { jobPositions, isLoading, createJobPosition, updateJobPosition } = useJobPositions();
   const { companies } = useCompanies();
+  const { isAdmin, isLoading: userLoading } = useCurrentUser();
+  const { showSuccess, showError } = useSnackbar();
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingPosition, setEditingPosition] = useState<JobPosition | null>(null);
@@ -35,14 +41,23 @@ export default function PositionsPage() {
     description: '',
     is_active: true,
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleOpenCreate = () => {
+    if (!isAdmin) {
+      showError('管理者権限が必要です');
+      return;
+    }
     setEditingPosition(null);
     setFormData({ company_id: '', name: '', description: '', is_active: true });
     setDialogOpen(true);
   };
 
   const handleOpenEdit = (position: JobPosition) => {
+    if (!isAdmin) {
+      showError('管理者権限が必要です');
+      return;
+    }
     setEditingPosition(position);
     setFormData({
       company_id: position.company_id,
@@ -59,16 +74,33 @@ export default function PositionsPage() {
   };
 
   const handleSubmit = async () => {
-    if (editingPosition) {
-      await updateJobPosition(editingPosition.id, {
-        name: formData.name,
-        description: formData.description,
-        is_active: formData.is_active,
-      });
-    } else {
-      await createJobPosition(formData);
+    setIsSubmitting(true);
+    try {
+      if (editingPosition) {
+        await updateJobPosition(editingPosition.id, {
+          name: formData.name,
+          description: formData.description,
+          is_active: formData.is_active,
+        });
+        showSuccess('ポジションを更新しました');
+      } else {
+        await createJobPosition(formData);
+        showSuccess('ポジションを登録しました');
+      }
+      handleClose();
+    } catch (error) {
+      if (error instanceof ApiError) {
+        if (error.status === 403) {
+          showError('管理者権限が必要です');
+        } else {
+          showError(error.message);
+        }
+      } else {
+        showError('エラーが発生しました');
+      }
+    } finally {
+      setIsSubmitting(false);
     }
-    handleClose();
   };
 
   const getCompanyName = (companyId: string) => {
@@ -104,10 +136,16 @@ export default function PositionsPage() {
       sortable: false,
       renderCell: (params) => (
         <Box>
-          <Tooltip title="編集">
-            <IconButton size="small" onClick={() => handleOpenEdit(params.row)}>
-              <Edit size={16} />
-            </IconButton>
+          <Tooltip title={isAdmin ? '編集' : '管理者権限が必要'}>
+            <span>
+              <IconButton
+                size="small"
+                onClick={() => handleOpenEdit(params.row)}
+                disabled={!isAdmin}
+              >
+                <Edit size={16} />
+              </IconButton>
+            </span>
           </Tooltip>
           <Tooltip title="定性要件設定">
             <IconButton
@@ -126,22 +164,43 @@ export default function PositionsPage() {
   return (
     <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4">求人ポジション</Typography>
-        <Button
-          variant="contained"
-          startIcon={<Plus size={18} />}
-          onClick={handleOpenCreate}
-          disableElevation
-        >
-          新規登録
-        </Button>
+        <Box display="flex" alignItems="center" gap={2}>
+          <Typography variant="h4">求人ポジション</Typography>
+          {!userLoading && !isAdmin && (
+            <Chip
+              icon={<Shield size={14} />}
+              label="閲覧のみ"
+              size="small"
+              color="default"
+            />
+          )}
+        </Box>
+        <Tooltip title={isAdmin ? '' : '管理者権限が必要です'}>
+          <span>
+            <Button
+              variant="contained"
+              startIcon={<Plus size={18} />}
+              onClick={handleOpenCreate}
+              disableElevation
+              disabled={!isAdmin}
+            >
+              新規登録
+            </Button>
+          </span>
+        </Tooltip>
       </Box>
+
+      {!userLoading && !isAdmin && (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          ポジションの追加・編集には管理者権限が必要です
+        </Alert>
+      )}
 
       <Card>
         <DataGrid
           rows={jobPositions}
           columns={columns}
-          loading={isLoading}
+          loading={isLoading || userLoading}
           pageSizeOptions={[10, 25, 50]}
           initialState={{
             pagination: { paginationModel: { pageSize: 25 } },
@@ -205,18 +264,17 @@ export default function PositionsPage() {
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleClose}>キャンセル</Button>
+          <Button onClick={handleClose} disabled={isSubmitting}>キャンセル</Button>
           <Button
             variant="contained"
             onClick={handleSubmit}
-            disabled={!formData.name || (!editingPosition && !formData.company_id)}
+            disabled={!formData.name || (!editingPosition && !formData.company_id) || isSubmitting}
             disableElevation
           >
-            {editingPosition ? '更新' : '登録'}
+            {isSubmitting ? '処理中...' : (editingPosition ? '更新' : '登録')}
           </Button>
         </DialogActions>
       </Dialog>
     </Box>
   );
 }
-
