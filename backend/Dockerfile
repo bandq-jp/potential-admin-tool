@@ -8,7 +8,8 @@ COPY pyproject.toml uv.lock ./
 ENV UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
     UV_PYTHON_PREFERENCE=system
-RUN uv sync --frozen --no-dev --python /usr/bin/python3.12
+# uv:python3.12-bookworm には /usr/local/bin/python3.12 が入っているためパス指定なしで解決可能
+RUN uv sync --frozen --no-dev
 
 # Stage 2: slim runtime image
 FROM python:3.12-slim AS runner
