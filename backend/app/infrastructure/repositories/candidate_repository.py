@@ -1,3 +1,4 @@
+from datetime import date, timedelta
 from uuid import UUID
 
 from app.domain.entities.candidate import Candidate
@@ -103,6 +104,81 @@ class CandidateRepository:
                 stats["hired"] += 1
             if c.get("mismatch_flag"):
                 stats["mismatch"] += 1
+
+        return stats
+
+    async def get_active_candidates_count(self) -> int:
+        response = (
+            self.client.table(self.table)
+            .select("id", count="exact")
+            .eq("deleted_flag", False)
+            .eq("hire_status", "undecided")
+            .neq("stage_final_result", "rejected")
+            .execute()
+        )
+        return response.count or 0
+
+    async def get_pending_interviews_count(self) -> int:
+        response = (
+            self.client.table(self.table)
+            .select("id", count="exact")
+            .eq("deleted_flag", False)
+            .eq("stage_0_5_result", "not_done")
+            .not_.is_("stage_0_5_date", "null")
+            .execute()
+        )
+        return response.count or 0
+
+    async def get_monthly_stats(self, year: int, month: int) -> dict:
+        first_day = date(year, month, 1)
+        if month == 12:
+            last_day = date(year + 1, 1, 1) - timedelta(days=1)
+        else:
+            last_day = date(year, month + 1, 1) - timedelta(days=1)
+
+        response = (
+            self.client.table(self.table)
+            .select("*")
+            .eq("deleted_flag", False)
+            .gte("created_at", first_day.isoformat())
+            .lte("created_at", f"{last_day.isoformat()}T23:59:59")
+            .execute()
+        )
+        candidates = response.data
+
+        hired_response = (
+            self.client.table(self.table)
+            .select("id", count="exact")
+            .eq("deleted_flag", False)
+            .eq("hire_status", "hired")
+            .gte("updated_at", first_day.isoformat())
+            .lte("updated_at", f"{last_day.isoformat()}T23:59:59")
+            .execute()
+        )
+
+        mismatch_response = (
+            self.client.table(self.table)
+            .select("id", count="exact")
+            .eq("deleted_flag", False)
+            .eq("mismatch_flag", True)
+            .gte("updated_at", first_day.isoformat())
+            .lte("updated_at", f"{last_day.isoformat()}T23:59:59")
+            .execute()
+        )
+
+        stats = {
+            "active_candidates": len(candidates),
+            "hired": hired_response.count or 0,
+            "mismatch": mismatch_response.count or 0,
+            "stage_0_5_done": 0,
+            "stage_0_5_passed": 0,
+        }
+
+        for c in candidates:
+            if c.get("stage_0_5_result") != "not_done":
+                stats["stage_0_5_done"] += 1
+            if c.get("stage_0_5_result") == "passed":
+                stats["stage_0_5_passed"] += 1
 
         return stats
 

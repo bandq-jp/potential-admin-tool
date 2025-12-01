@@ -35,6 +35,7 @@ import {
 } from 'lucide-react';
 import { useClerk, useUser } from '@clerk/nextjs';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { useDashboardStats } from '@/hooks/useCandidates';
 
 export const SIDEBAR_WIDTH = 260;
 export const SIDEBAR_COLLAPSED_WIDTH = 72;
@@ -72,6 +73,9 @@ export function Sidebar({ open = true, onClose, onToggle, variant = 'permanent' 
   const { user } = useUser();
   const { signOut } = useClerk();
   const { isAdmin } = useCurrentUser();
+  const { stats } = useDashboardStats();
+
+  const activeCandidatesCount = stats?.active_candidates ?? 0;
 
   const isActive = (href: string) => {
     if (href === '/dashboard') {
@@ -114,9 +118,9 @@ export function Sidebar({ open = true, onClose, onToggle, variant = 'permanent' 
               primary={item.label}
               primaryTypographyProps={{ fontWeight: isActive(item.href) ? 600 : 400 }}
             />
-            {item.badge && (
+            {item.badge && activeCandidatesCount > 0 && (
               <Chip
-                label="12"
+                label={activeCandidatesCount}
                 size="small"
                 color="primary"
                 sx={{ height: 20, fontSize: '0.7rem' }}

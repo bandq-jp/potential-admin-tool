@@ -7,6 +7,7 @@ from app.application.dto.candidate import (
     CandidateResponse,
     CandidateUpdate,
     CandidateWithRelations,
+    DashboardStats,
     FunnelStats,
 )
 from app.application.services.candidate_service import CandidateService
@@ -37,6 +38,12 @@ async def list_candidates(
 async def get_funnel_stats(company_id: UUID | None = None, _: CurrentUser = None):
     service = CandidateService()
     return await service.get_funnel_stats(company_id)
+
+
+@router.get("/dashboard-stats", response_model=DashboardStats)
+async def get_dashboard_stats(_: CurrentUser = None):
+    service = CandidateService()
+    return await service.get_dashboard_stats()
 
 
 @router.get("/{candidate_id}", response_model=CandidateWithRelations)

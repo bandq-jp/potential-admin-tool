@@ -3,6 +3,7 @@ import type {
   CandidateCreate,
   CandidateUpdate,
   CandidateWithRelations,
+  DashboardStats,
   FunnelStats,
 } from '@/domain/entities/candidate';
 
@@ -28,6 +29,9 @@ export const candidatesApi = {
     const query = companyId ? `?company_id=${companyId}` : '';
     return api.get<FunnelStats>(`/candidates/funnel${query}`, token);
   },
+
+  getDashboardStats: (token: string) =>
+    api.get<DashboardStats>('/candidates/dashboard-stats', token),
 
   getById: (id: string, token: string) =>
     api.get<CandidateWithRelations>(`/candidates/${id}`, token),

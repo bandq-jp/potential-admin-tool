@@ -86,3 +86,24 @@ class FunnelStats(BaseModel):
     hired: int
     mismatch: int
 
+
+class MonthlyStats(BaseModel):
+    active_candidates: int
+    hired: int
+    mismatch: int
+    stage_0_5_done: int
+    stage_0_5_passed: int
+
+
+class DashboardStats(BaseModel):
+    active_candidates: int
+    pending_interviews: int
+    hired_this_month: int
+    mismatch_count: int
+    stage_0_5_pass_rate: float
+    stage_0_5_done_count: int
+    current_month: MonthlyStats
+    previous_month: MonthlyStats
+    active_trend_percent: float | None
+    hired_trend_percent: float | None
+

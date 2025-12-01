@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { usePathname } from 'next/navigation';
+import Link from 'next/link';
 import {
   AppBar,
   Toolbar,
@@ -10,8 +11,10 @@ import {
   IconButton,
   Badge,
   InputBase,
+  Tooltip,
 } from '@mui/material';
 import { Search, Bell, HelpCircle, Menu as MenuIcon, ChevronRight, PanelLeftClose, PanelLeft } from 'lucide-react';
+import { useDashboardStats } from '@/hooks/useCandidates';
 
 interface HeaderProps {
   onMenuClick?: () => void;
@@ -34,6 +37,9 @@ const pathTitles: Record<string, string> = {
 export function Header({ onMenuClick, onSidebarToggle, sidebarOpen = true, sidebarWidth = 260 }: HeaderProps) {
   const pathname = usePathname();
   const [searchValue, setSearchValue] = useState('');
+  const { stats } = useDashboardStats();
+
+  const pendingCount = stats?.pending_interviews ?? 0;
 
   const currentTitle = pathTitles[pathname] ?? 'ページ';
 
@@ -119,11 +125,18 @@ export function Header({ onMenuClick, onSidebarToggle, sidebarOpen = true, sideb
           />
         </Box>
 
-        <IconButton size="large" color="inherit">
-          <Badge badgeContent={4} color="error">
-            <Bell size={20} />
-          </Badge>
-        </IconButton>
+        <Tooltip title={pendingCount > 0 ? `未入力面談ログ ${pendingCount}件` : '通知なし'}>
+          <IconButton
+            component={Link}
+            href="/dashboard/interviews"
+            size="large"
+            color="inherit"
+          >
+            <Badge badgeContent={pendingCount} color="error">
+              <Bell size={20} />
+            </Badge>
+          </IconButton>
+        </Tooltip>
         <IconButton size="large" color="inherit">
           <HelpCircle size={20} />
         </IconButton>

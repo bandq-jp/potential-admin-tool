@@ -7,6 +7,7 @@ import type {
   CandidateCreate,
   CandidateUpdate,
   CandidateWithRelations,
+  DashboardStats,
   FunnelStats,
 } from '@/domain/entities/candidate';
 
@@ -103,6 +104,27 @@ export function useCandidate(id: string) {
 
   return {
     candidate: data,
+    isLoading,
+    error,
+    mutate,
+  };
+}
+
+export function useDashboardStats() {
+  const { getToken } = useAuth();
+
+  const { data, error, isLoading, mutate } = useSWR<DashboardStats>(
+    'dashboard-stats',
+    async () => {
+      const token = await getToken();
+      if (!token) throw new Error('No token');
+      return candidatesApi.getDashboardStats(token);
+    },
+    { refreshInterval: 60000 }
+  );
+
+  return {
+    stats: data,
     isLoading,
     error,
     mutate,

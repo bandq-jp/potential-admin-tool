@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from uuid import UUID, uuid4
 
 from app.application.dto.candidate import (
@@ -6,7 +6,9 @@ from app.application.dto.candidate import (
     CandidateResponse,
     CandidateUpdate,
     CandidateWithRelations,
+    DashboardStats,
     FunnelStats,
+    MonthlyStats,
 )
 from app.domain.entities.candidate import Candidate
 from app.infrastructure.repositories.agent_repository import AgentRepository
@@ -112,4 +114,50 @@ class CandidateService:
     async def get_funnel_stats(self, company_id: UUID | None = None) -> FunnelStats:
         stats = await self.repository.get_funnel_stats(company_id)
         return FunnelStats(**stats)
+
+    async def get_dashboard_stats(self) -> DashboardStats:
+        today = date.today()
+        current_year, current_month = today.year, today.month
+        if current_month == 1:
+            prev_year, prev_month = current_year - 1, 12
+        else:
+            prev_year, prev_month = current_year, current_month - 1
+
+        active_candidates = await self.repository.get_active_candidates_count()
+        pending_interviews = await self.repository.get_pending_interviews_count()
+        funnel = await self.repository.get_funnel_stats()
+
+        current_stats = await self.repository.get_monthly_stats(current_year, current_month)
+        previous_stats = await self.repository.get_monthly_stats(prev_year, prev_month)
+
+        pass_rate = 0.0
+        if funnel["stage_0_5_done"] > 0:
+            pass_rate = (funnel["stage_0_5_passed"] / funnel["stage_0_5_done"]) * 100
+
+        active_trend = None
+        if previous_stats["active_candidates"] > 0:
+            active_trend = (
+                (current_stats["active_candidates"] - previous_stats["active_candidates"])
+                / previous_stats["active_candidates"]
+            ) * 100
+
+        hired_trend = None
+        if previous_stats["hired"] > 0:
+            hired_trend = (
+                (current_stats["hired"] - previous_stats["hired"])
+                / previous_stats["hired"]
+            ) * 100
+
+        return DashboardStats(
+            active_candidates=active_candidates,
+            pending_interviews=pending_interviews,
+            hired_this_month=current_stats["hired"],
+            mismatch_count=funnel["mismatch"],
+            stage_0_5_pass_rate=round(pass_rate, 1),
+            stage_0_5_done_count=funnel["stage_0_5_done"],
+            current_month=MonthlyStats(**current_stats),
+            previous_month=MonthlyStats(**previous_stats),
+            active_trend_percent=round(active_trend, 1) if active_trend is not None else None,
+            hired_trend_percent=round(hired_trend, 1) if hired_trend is not None else None,
+        )
 

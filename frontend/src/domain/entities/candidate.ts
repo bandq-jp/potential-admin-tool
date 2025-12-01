@@ -74,3 +74,24 @@ export interface FunnelStats {
   mismatch: number;
 }
 
+export interface MonthlyStats {
+  active_candidates: number;
+  hired: number;
+  mismatch: number;
+  stage_0_5_done: number;
+  stage_0_5_passed: number;
+}
+
+export interface DashboardStats {
+  active_candidates: number;
+  pending_interviews: number;
+  hired_this_month: number;
+  mismatch_count: number;
+  stage_0_5_pass_rate: number;
+  stage_0_5_done_count: number;
+  current_month: MonthlyStats;
+  previous_month: MonthlyStats;
+  active_trend_percent: number | null;
+  hired_trend_percent: number | null;
+}
+
