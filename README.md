@@ -7,9 +7,9 @@ Created by: bandq
 
 ---
 
-# 【PoC開発】ポテンシャル採用評価ログシステム 要件定義書（最終版）
+# 【PoC開発】ポテンシャル採用評価ログシステム 要件定義書（Ver.3）
 
-**作成日:** 2025年11月21日
+**作成日:** 2025年12月1日
 
 **作成者:** 新規事業開発担当
 
@@ -64,9 +64,10 @@ Created by: bandq
 
 ### 1.3 採用技術スタック
 
-- フロントエンド：Next.js 16 / React / TypeScript / shadcn/ui / Tailwind CSS
+- フロントエンド：Next.js 16 / React / TypeScript / MUI (Material UI) / Tailwind CSS
 - バックエンド：FastAPI（Python）
 - データベース：Supabase（PostgreSQL）
+- 認証：Clerk（OAuth / Email / Password 等）
 - JSランタイム／パッケージマネージャ：Bun（フロントエンド開発・ビルド）
 - Pythonツールチェーン：uv（依存管理・実行）
 
@@ -180,7 +181,7 @@ Created by: bandq
     - ただし、**編集できるのは自分が owner_user の候補者のみ**
         - 候補者基本情報／0.5面談ログ／Q&A／文字起こし 等
 - 認証：
-    - Google Login または Email/Password 認証。
+    - Clerk による認証（Google OAuth または Email/Password）。
     - 未ログイン状態での画面アクセスはすべて禁止。
 
 ---
@@ -447,15 +448,15 @@ Criteria は JobPosition に紐づく。**
 ## 6. 非機能要件（Non-Functional Requirements）
 
 - 技術スタック：
-    - 管理画面：Next.js 16（React / TypeScript）＋ shadcn/ui ＋ Tailwind CSS
+    - 管理画面：Next.js 16（React / TypeScript）＋ MUI（Material UI）＋ Tailwind CSS
     - JSランタイム／パッケージ管理：Bun
     - バックエンド：FastAPI（Python）
     - DB：Supabase（PostgreSQL）
     - Pythonパッケージ管理：uv
 - UI：
-    - 管理画面テンプレ（MUI / Ant Design / Tailwind UI等）活用、独自デザイン最小。
+    - MUIのテーマ／コンポーネントを基盤とし、必要最低限のカスタム。Tailwindはユーティリティ用途に限定。
 - 認証・セキュリティ：
-    - 認証必須（Google OAuth or Email/Password）。
+    - Clerkでの認証必須（Google OAuth / Email/Password 等）。
     - company_id / job_position_id を基点に、将来的なRLS拡張が可能なスキーマにする。
 - パフォーマンス：
     - PoCでは候補者〜数百件、面談ログ〜数百件を想定。
@@ -466,3 +467,29 @@ Criteria は JobPosition に紐づく。**
     - 重要更新は updated_at と updated_by（実装できれば）で追跡可能にする。
 
 ---
+
+## 7. アーキテクチャ方針・ディレクトリ構成
+
+- 基本方針：
+    - フロントエンド／バックエンドともに DDD + クリーンアーキテクチャを採用し、依存方向はプレゼンテーション → アプリケーション → ドメインとする（インフラは内側へ依存し、逆依存は禁止）。
+    - ユースケース（アプリケーション層）はフレームワーク非依存で記述し、テスト容易性を担保する。
+
+- フロントエンド（Next.js）ディレクトリ指針：
+    - `src/domain`：ドメインモデル／値オブジェクト／ドメインサービス（純TypeScript）。
+    - `src/application`：ユースケース・サービスのオーケストレーション（React非依存）。
+    - `src/infrastructure`：APIクライアント、Repository実装、Clerk/Supabaseアダプタなど外部接続層。
+    - `src/features`：境界づけられたコンテキスト単位のUI組み立て・状態管理（application層を呼び出す）。
+    - `src/app` / `src/components`：プレゼンテーション層（Next.js App Routerの画面、再利用UI、MUIテーマ設定）。
+    - `src/lib` / `src/config`：横断的な設定・ユーティリティ。
+
+- バックエンド（FastAPI）ディレクトリ指針：
+    - `app/domain`：エンティティ・値オブジェクト・ドメインサービス。
+    - `app/application`：ユースケース／サービス／DTO・バリデーション。
+    - `app/infrastructure`：Repository実装、Supabase/PostgreSQL・外部APIクライアント、メッセージング等のアダプタ。
+    - `app/api`：FastAPIエンドポイント（プレゼンテーション層）。
+    - `app/core`：設定・DI・共通基盤。依存方向は `api -> application -> domain` を遵守。
+
+- テスト方針：
+    - ドメイン層は純粋ロジックとして単体テストを優先。
+    - アプリケーション層はユースケース単位でインフラをモックして検証。
+    - プレゼンテーション層は主要ユーザーフローを統合/E2Eテストで担保。
