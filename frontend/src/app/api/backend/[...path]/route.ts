@@ -17,7 +17,16 @@ async function handler(request: Request, context: any) {
 
   const isDev = process.env.NODE_ENV === 'development';
   if (!isDev) {
-    const idToken = await fetchIdToken();
+    let idToken: string;
+    try {
+      idToken = await fetchIdToken();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      return new Response(
+        JSON.stringify({ message: 'Failed to obtain Cloud Run ID token', detail: message }),
+        { status: 500, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
     headers.set('Authorization', `Bearer ${idToken}`);
   }
 
