@@ -1,3 +1,10 @@
 backend/.env
 frontend/.clerk
 .env.local
+supabase/.temp
+backend/__pycache__
+backend/.venv
+backend/app/__pycache__
+__pycache__
+.env
+.env.local
