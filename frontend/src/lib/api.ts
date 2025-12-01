@@ -1,4 +1,7 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+const isDev = process.env.NODE_ENV === 'development';
+const API_BASE_URL = isDev
+  ? process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'
+  : '/api/backend';
 
 export class ApiError extends Error {
   constructor(
@@ -56,4 +59,3 @@ export const api = {
   delete: <T>(endpoint: string, token?: string) =>
     apiFetch<T>(endpoint, { method: 'DELETE' }, token),
 };
-

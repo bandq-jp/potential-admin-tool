@@ -1,6 +1,6 @@
 # Multi-stage build using uv for dependency management
-# Stage 1: build virtualenv with uv
-FROM ghcr.io/astral-sh/uv:latest AS builder
+# Stage 1: build virtualenv with uv (image variant that ships /bin/sh)
+FROM ghcr.io/astral-sh/uv:python3.12-bookworm AS builder
 WORKDIR /app
 
 # Leverage uv's resolver cache
