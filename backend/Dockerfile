@@ -24,7 +24,6 @@ RUN pip install --no-cache-dir uv \
 # アプリコード
 COPY app ./app
 COPY main.py .
-COPY supabase ./supabase
 
 ENV PORT=8080
 EXPOSE 8080
