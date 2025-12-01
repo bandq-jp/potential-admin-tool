@@ -66,6 +66,7 @@ async function handleRequest(request: NextRequest, params: { path: string[] }, m
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${clerkToken}`,
+      'X-Clerk-Token': clerkToken,
     };
 
     const res = await fetch(targetUrl, {
@@ -113,7 +114,9 @@ async function handleRequest(request: NextRequest, params: { path: string[] }, m
     data,
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${clerkToken}`,
+      // Authorization will be overwritten by IdTokenClient with the Cloud Run ID token.
+      // We pass the Clerk session token separately so the backend can identify the user.
+      'X-Clerk-Token': clerkToken,
     },
     validateStatus: () => true,
     responseType: 'json',

@@ -1,7 +1,7 @@
 from typing import Annotated, Optional
 from uuid import uuid4
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 import httpx
@@ -60,10 +60,23 @@ async def get_clerk_user_info(clerk_user_id: str, secret_key: str) -> dict:
 
 
 async def get_current_user(
+    request: Request,
     credentials: Annotated[Optional[HTTPAuthorizationCredentials], Depends(security)],
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> User:
-    if settings.debug and credentials is None:
+    token: Optional[str] = None
+
+    # Prefer the explicit Clerk token header (used when Cloud Run consumes the Authorization header)
+    header_token = request.headers.get("x-clerk-token")
+    if header_token:
+        token = header_token
+    elif credentials is not None:
+        token = credentials.credentials
+
+    if token and token.lower().startswith("bearer "):
+        token = token[7:].strip()
+
+    if settings.debug and token is None:
         return User(
             id=uuid4(),
             clerk_id="dev-clerk-id",
@@ -72,13 +85,11 @@ async def get_current_user(
             role=UserRole.ADMIN,
         )
 
-    if credentials is None:
+    if token is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authenticated",
         )
-
-    token = credentials.credentials
 
     try:
         unverified_header = jwt.get_unverified_header(token)
