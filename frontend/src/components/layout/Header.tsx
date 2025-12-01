@@ -11,11 +11,13 @@ import {
   Badge,
   InputBase,
 } from '@mui/material';
-import { Search, Bell, HelpCircle, Menu as MenuIcon, ChevronRight } from 'lucide-react';
-import { SIDEBAR_WIDTH } from './Sidebar';
+import { Search, Bell, HelpCircle, Menu as MenuIcon, ChevronRight, PanelLeftClose, PanelLeft } from 'lucide-react';
 
 interface HeaderProps {
   onMenuClick?: () => void;
+  onSidebarToggle?: () => void;
+  sidebarOpen?: boolean;
+  sidebarWidth?: number;
 }
 
 const pathTitles: Record<string, string> = {
@@ -29,7 +31,7 @@ const pathTitles: Record<string, string> = {
   '/dashboard/settings': '設定',
 };
 
-export function Header({ onMenuClick }: HeaderProps) {
+export function Header({ onMenuClick, onSidebarToggle, sidebarOpen = true, sidebarWidth = 260 }: HeaderProps) {
   const pathname = usePathname();
   const [searchValue, setSearchValue] = useState('');
 
@@ -40,12 +42,13 @@ export function Header({ onMenuClick }: HeaderProps) {
       position="fixed"
       elevation={0}
       sx={{
-        width: { md: `calc(100% - ${SIDEBAR_WIDTH}px)` },
-        ml: { md: `${SIDEBAR_WIDTH}px` },
+        width: { xs: '100%', md: `calc(100% - ${sidebarWidth}px)` },
+        ml: { xs: 0, md: `${sidebarWidth}px` },
         bgcolor: 'background.paper',
         borderBottom: '1px solid #e2e8f0',
         color: 'text.primary',
         zIndex: (theme) => theme.zIndex.drawer + 1,
+        transition: 'width 0.2s ease-in-out, margin-left 0.2s ease-in-out',
       }}
     >
       <Toolbar>
@@ -57,6 +60,16 @@ export function Header({ onMenuClick }: HeaderProps) {
           sx={{ mr: 2, display: { md: 'none' } }}
         >
           <MenuIcon />
+        </IconButton>
+
+        <IconButton
+          color="inherit"
+          aria-label="toggle sidebar"
+          edge="start"
+          onClick={onSidebarToggle}
+          sx={{ mr: 2, display: { xs: 'none', md: 'flex' } }}
+        >
+          {sidebarOpen ? <PanelLeftClose size={20} /> : <PanelLeft size={20} />}
         </IconButton>
 
         <Box sx={{ display: 'flex', alignItems: 'center', color: 'text.secondary' }}>
@@ -118,4 +131,3 @@ export function Header({ onMenuClick }: HeaderProps) {
     </AppBar>
   );
 }
-

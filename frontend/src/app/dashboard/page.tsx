@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Box, Typography, Button, Grid } from '@mui/material';
 import { Plus, Users, FileText, CheckCircle2, AlertTriangle } from 'lucide-react';
@@ -14,6 +15,11 @@ export default function DashboardPage() {
   const { candidates } = useCandidates();
   const { stats: funnelStats } = useFunnelStats();
   const { stats: agentStats } = useAgentStats();
+  const [lastUpdated, setLastUpdated] = useState<string>('');
+
+  useEffect(() => {
+    setLastUpdated(new Date().toLocaleString('ja-JP'));
+  }, []);
 
   const activeCandidates = candidates.filter(
     (c) => c.hire_status === 'undecided' && c.stage_final_result !== 'rejected'
@@ -35,7 +41,7 @@ export default function DashboardPage() {
             採用状況サマリー
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            最終更新: {new Date().toLocaleString('ja-JP')}
+            最終更新: {lastUpdated || '読み込み中...'}
           </Typography>
         </Box>
         <Button
@@ -104,4 +110,3 @@ export default function DashboardPage() {
     </Box>
   );
 }
-
