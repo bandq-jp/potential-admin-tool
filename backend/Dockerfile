@@ -13,10 +13,13 @@ RUN apt-get update \
   && apt-get install -y --no-install-recommends ca-certificates curl \
   && rm -rf /var/lib/apt/lists/*
 
-# 依存解決（uv を pip で導入し、uv.lock に基づき system site-packages にインストール）
+# venv を作り、uv で lockfile に沿って同期
+RUN python -m venv /app/.venv
+ENV PATH="/app/.venv/bin:$PATH"
+
 COPY pyproject.toml uv.lock ./
 RUN pip install --no-cache-dir uv \
-  && uv pip install --system --frozen
+  && uv sync --frozen --no-dev
 
 # アプリコード
 COPY app ./app
