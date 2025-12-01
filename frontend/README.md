@@ -1,36 +1,92 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ポテンシャル採用評価ログシステム - フロントエンド
 
-## Getting Started
+Next.js 16 + MUI + Clerk による管理画面
 
-First, run the development server:
+## セットアップ
+
+### 1. 依存関係のインストール
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
+cd frontend
+bun install
+```
+
+### 2. 環境変数の設定
+
+`.env.local` ファイルを作成:
+
+```bash
+cp env.example .env.local
+```
+
+各環境変数の取得方法:
+
+| 環境変数 | 取得場所 |
+|---------|---------|
+| `NEXT_PUBLIC_API_URL` | バックエンドサーバーのURL（デフォルト: `http://localhost:8000/api/v1`） |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerkダッシュボード → API Keys → Publishable keys |
+| `CLERK_SECRET_KEY` | Clerkダッシュボード → API Keys → Secret keys |
+
+### 3. 開発サーバー起動
+
+```bash
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+http://localhost:3000 でアクセス
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## ディレクトリ構造
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+frontend/src/
+├── app/                    # Next.js App Router
+│   ├── (auth)/             # 認証ページ
+│   └── dashboard/          # ダッシュボード画面群
+├── components/
+│   ├── dashboard/          # ダッシュボード用コンポーネント
+│   ├── layout/             # レイアウトコンポーネント
+│   └── providers/          # Provider コンポーネント
+├── config/                 # 設定（MUIテーマ等）
+├── domain/
+│   └── entities/           # ドメインエンティティ（型定義）
+├── hooks/                  # カスタムフック
+├── infrastructure/
+│   └── api/                # APIクライアント
+└── lib/                    # ユーティリティ
+```
 
-## Learn More
+## 主な機能
 
-To learn more about Next.js, take a look at the following resources:
+### ダッシュボード
+- KPIカード（進行中候補者数、通過率、内定数、ミスマッチ）
+- 選考ファネルチャート
+- エージェント別パフォーマンスチャート
+- 未入力面談ログ一覧
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 候補者管理
+- 候補者一覧（フィルタ・検索）
+- 候補者登録・編集
+- 選考ステータス管理
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 0.5次面談評価
+- 定性要件別スコアリング（◎/◯/△/×）
+- 外向きコメント / 内部メモ
+- Q&Aログ
+- 文字起こしテキスト保存
+- Will / アトラクトポイント
+- レポート生成（クリップボードコピー）
 
-## Deploy on Vercel
+### マスタ管理
+- クライアント企業
+- 求人ポジション
+- 定性要件（大項目・中項目）
+- エージェント
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 技術スタック
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **フレームワーク**: Next.js 16 (App Router)
+- **UIライブラリ**: MUI (Material UI)
+- **認証**: Clerk
+- **データフェッチ**: SWR
+- **チャート**: Recharts
+- **アイコン**: Lucide React
