@@ -1,12 +1,13 @@
 import { Buffer } from 'node:buffer';
-import { GoogleAuth } from 'google-auth-library';
+import { GoogleAuth, IdTokenClient } from 'google-auth-library';
 
 let cachedToken: { value: string; exp: number } | null = null;
+let cachedClient: IdTokenClient | null = null;
 
 const getAudience = () => {
   const aud = process.env.BACKEND_IAM_AUDIENCE || process.env.BACKEND_BASE_URL;
   if (!aud) throw new Error('BACKEND_IAM_AUDIENCE or BACKEND_BASE_URL is required');
-  // Cloud Run expects origin (path を削除)
+  // Cloud Run expects origin (パスなし)
   return aud.replace(/\/$/, '').replace(/\/api\/v1$/, '');
 };
 
@@ -32,10 +33,19 @@ export async function fetchIdToken(): Promise<string> {
     return cachedToken.value;
   }
 
-  const credentials = parseCredentials();
-  const auth = new GoogleAuth({ credentials });
-  const token = await auth.fetchIdToken(aud);
+  if (!cachedClient) {
+    const credentials = parseCredentials();
+    const auth = new GoogleAuth({ credentials });
+    cachedClient = await auth.getIdTokenClient(aud);
+  }
 
+  const headers = (await cachedClient.getRequestHeaders(aud)) as unknown as Record<string, string>;
+  const tokenHeader = headers['Authorization'] || headers['authorization'];
+  if (!tokenHeader || !tokenHeader.startsWith('Bearer ')) {
+    throw new Error('Failed to obtain ID token for Cloud Run');
+  }
+
+  const token = tokenHeader.replace(/^Bearer\s+/i, '');
   cachedToken = { value: token, exp: now + 5 * 60_000 };
   return token;
 }
