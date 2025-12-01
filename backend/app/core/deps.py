@@ -14,6 +14,12 @@ security = HTTPBearer(auto_error=False)
 
 _jwks_cache: Optional[dict] = None
 
+ALLOWED_EMAIL_DOMAIN = "@bandq.jp"
+
+
+def is_allowed_email_domain(email: str) -> bool:
+    return email.lower().endswith(ALLOWED_EMAIL_DOMAIN)
+
 
 async def get_clerk_jwks(issuer: str) -> dict:
     global _jwks_cache
@@ -61,7 +67,7 @@ async def get_current_user(
         return User(
             id=uuid4(),
             clerk_id="dev-clerk-id",
-            email="dev@example.com",
+            email="dev@bandq.jp",
             name="開発ユーザー",
             role=UserRole.ADMIN,
         )
@@ -130,6 +136,12 @@ async def get_current_user(
         if email is None:
             email = f"{clerk_user_id}@clerk.local"
         
+        if not is_allowed_email_domain(email):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Access denied. Only {ALLOWED_EMAIL_DOMAIN} domain is allowed.",
+            )
+        
         first_name = clerk_user.get("first_name", "") or ""
         last_name = clerk_user.get("last_name", "") or ""
         name = f"{first_name} {last_name}".strip() or "ユーザー"
@@ -153,6 +165,12 @@ async def get_current_user(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                     detail=f"Failed to create user: {str(e)}",
                 )
+    else:
+        if not is_allowed_email_domain(user.email):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Access denied. Only {ALLOWED_EMAIL_DOMAIN} domain is allowed.",
+            )
 
     return user
 
