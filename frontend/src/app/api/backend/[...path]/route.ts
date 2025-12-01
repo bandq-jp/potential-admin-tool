@@ -1,76 +1,135 @@
-import { fetchIdToken } from '@/lib/gcpAuth';
+import { auth } from '@clerk/nextjs/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { GoogleAuth } from 'google-auth-library';
 
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
+const LOCAL_API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
 
 const BACKEND_BASE_URL =
-  process.env.BACKEND_BASE_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+  process.env.BACKEND_BASE_URL || LOCAL_API_BASE_URL;
 
-async function handler(request: Request, context: any) {
-  const path = context?.params?.path?.join('/') ?? '';
-  const url = new URL(request.url);
-  const target = `${BACKEND_BASE_URL.replace(/\/$/, '')}/${path}${url.search}`;
+const GCP_SA_JSON = process.env.GCP_SA_JSON;
+const USE_LOCAL_BACKEND = process.env.USE_LOCAL_BACKEND === 'true';
 
-  const headers = new Headers(request.headers);
-  headers.delete('host');
-  headers.delete('content-length');
+// Cloud Run の audience はパスを含まない origin が必要
+const extractAudience = (urlStr: string) => {
+  try {
+    const u = new URL(urlStr);
+    return u.origin;
+  } catch {
+    return '';
+  }
+};
 
-  const isDev = process.env.NODE_ENV === 'development';
-  if (!isDev) {
-    let idToken: string;
-    try {
-      idToken = await fetchIdToken();
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown error';
-      return new Response(
-        JSON.stringify({ message: 'Failed to obtain Cloud Run ID token', detail: message }),
-        { status: 500, headers: { 'Content-Type': 'application/json' } }
-      );
-    }
-    headers.set('Authorization', `Bearer ${idToken}`);
+async function handleRequest(request: NextRequest, params: { path: string[] }, method: string) {
+  // 1) Clerk 認証チェック（未ログインなら 401）
+  const { userId } = await auth();
+  if (!userId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const response = await fetch(target, {
-    method: request.method,
-    headers,
-    body: request.method === 'GET' || request.method === 'HEAD' ? undefined : request.body,
-    redirect: 'manual',
+  // 2) ターゲットURL組み立て
+  const path = params.path.join('/');
+  const search = request.nextUrl.searchParams.toString();
+  const base = USE_LOCAL_BACKEND ? LOCAL_API_BASE_URL : BACKEND_BASE_URL;
+  if (!base) {
+    return NextResponse.json(
+      { error: 'BACKEND_BASE_URL is not configured' },
+      { status: 500 }
+    );
+  }
+  const targetUrl = `${base.replace(/\/$/, '')}/${path}${search ? `?${search}` : ''}`;
+
+  // 3) リクエストボディ
+  let data: any = undefined;
+  if (['POST', 'PUT', 'PATCH'].includes(method)) {
+    const text = await request.text();
+    if (text) {
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = text; // JSON でなければそのまま
+      }
+    }
+  }
+
+  // 4) ローカル or Cloud Run 判定
+  if (USE_LOCAL_BACKEND || process.env.NODE_ENV === 'development') {
+    // ローカル: ID Token 不要、必要なら Authorization を透過
+    const headers: HeadersInit = { 'Content-Type': 'application/json' };
+    const authHeader = request.headers.get('authorization');
+    if (authHeader) headers['authorization'] = authHeader;
+
+    const res = await fetch(targetUrl, {
+      method,
+      headers,
+      body: data ? JSON.stringify(data) : undefined,
+      redirect: 'manual',
+    });
+
+    const text = await res.text();
+    if (!res.ok) {
+      return new NextResponse(text, { status: res.status, statusText: res.statusText });
+    }
+    return new NextResponse(text, { status: res.status, headers: { 'Content-Type': 'application/json' } });
+  }
+
+  // 本番: Cloud Run 認証（ID Token）
+  if (!GCP_SA_JSON) {
+    return NextResponse.json({ error: 'GCP_SA_JSON is missing' }, { status: 500 });
+  }
+
+  let credentials;
+  try {
+    credentials = JSON.parse(GCP_SA_JSON);
+  } catch {
+    try {
+      const decoded = Buffer.from(GCP_SA_JSON, 'base64').toString('utf-8');
+      credentials = JSON.parse(decoded);
+    } catch {
+      return NextResponse.json({ error: 'Invalid GCP_SA_JSON' }, { status: 500 });
+    }
+  }
+
+  const audience = extractAudience(BACKEND_BASE_URL);
+  if (!audience) {
+    return NextResponse.json({ error: 'Invalid BACKEND_BASE_URL' }, { status: 500 });
+  }
+
+  const authClient = new GoogleAuth({ credentials });
+  const client = await authClient.getIdTokenClient(audience);
+
+  const response = await client.request({
+    url: targetUrl,
+    method: method as 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH',
+    data,
+    headers: { 'Content-Type': 'application/json' },
+    validateStatus: () => true,
+    responseType: 'json',
   });
 
-  const responseHeaders = new Headers(response.headers);
-  responseHeaders.delete('transfer-encoding');
+  if (response.status >= 400) {
+    return NextResponse.json(
+      response.data ?? { detail: response.statusText },
+      { status: response.status }
+    );
+  }
 
-  return new Response(response.body, {
-    status: response.status,
-    statusText: response.statusText,
-    headers: responseHeaders,
-  });
+  return NextResponse.json(response.data);
 }
 
-export async function GET(request: Request, context: any) {
-  return handler(request, context);
+export async function GET(req: NextRequest, context: any) {
+  return handleRequest(req, context.params, 'GET');
 }
-
-export async function POST(request: Request, context: any) {
-  return handler(request, context);
+export async function POST(req: NextRequest, context: any) {
+  return handleRequest(req, context.params, 'POST');
 }
-
-export async function PUT(request: Request, context: any) {
-  return handler(request, context);
+export async function PUT(req: NextRequest, context: any) {
+  return handleRequest(req, context.params, 'PUT');
 }
-
-export async function PATCH(request: Request, context: any) {
-  return handler(request, context);
+export async function PATCH(req: NextRequest, context: any) {
+  return handleRequest(req, context.params, 'PATCH');
 }
-
-export async function DELETE(request: Request, context: any) {
-  return handler(request, context);
-}
-
-export async function OPTIONS(request: Request, context: any) {
-  return handler(request, context);
-}
-
-export async function HEAD(request: Request, context: any) {
-  return handler(request, context);
+export async function DELETE(req: NextRequest, context: any) {
+  return handleRequest(req, context.params, 'DELETE');
 }
