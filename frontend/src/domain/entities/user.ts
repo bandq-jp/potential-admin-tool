@@ -10,3 +10,7 @@ export interface User {
   updated_at: string;
 }
 
+export interface UserUpdate {
+  name?: string;
+  role?: UserRole;
+}

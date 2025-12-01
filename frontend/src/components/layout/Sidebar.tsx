@@ -31,8 +31,10 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  UserCog,
 } from 'lucide-react';
 import { useClerk, useUser } from '@clerk/nextjs';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
 
 export const SIDEBAR_WIDTH = 260;
 export const SIDEBAR_COLLAPSED_WIDTH = 72;
@@ -54,6 +56,10 @@ const systemMenuItems = [
   { label: '設定', href: '/dashboard/settings', icon: Settings },
 ];
 
+const adminMenuItems = [
+  { label: 'ユーザー管理', href: '/dashboard/settings/users', icon: UserCog },
+];
+
 interface SidebarProps {
   open?: boolean;
   onClose?: () => void;
@@ -65,6 +71,7 @@ export function Sidebar({ open = true, onClose, onToggle, variant = 'permanent' 
   const pathname = usePathname();
   const { user } = useUser();
   const { signOut } = useClerk();
+  const { isAdmin } = useCurrentUser();
 
   const isActive = (href: string) => {
     if (href === '/dashboard') {
@@ -75,7 +82,9 @@ export function Sidebar({ open = true, onClose, onToggle, variant = 'permanent' 
 
   const currentWidth = open ? SIDEBAR_WIDTH : SIDEBAR_COLLAPSED_WIDTH;
 
-  const renderMenuItem = (item: { label: string; href: string; icon: React.ElementType; badge?: boolean }) => {
+  const renderMenuItem = (item: { label: string; href: string; icon: React.ElementType; badge?: boolean; adminOnly?: boolean }) => {
+    if (item.adminOnly && !isAdmin) return null;
+
     const content = (
       <ListItemButton
         component={Link}
@@ -196,6 +205,7 @@ export function Sidebar({ open = true, onClose, onToggle, variant = 'permanent' 
         )}
         <List>
           {systemMenuItems.map(renderMenuItem)}
+          {isAdmin && adminMenuItems.map((item) => renderMenuItem({ ...item, adminOnly: true }))}
         </List>
       </Box>
 
