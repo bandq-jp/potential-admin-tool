@@ -23,9 +23,16 @@ const extractAudience = (urlStr: string) => {
 
 async function handleRequest(request: NextRequest, params: { path: string[] }, method: string) {
   // 1) Clerk 認証チェック（未ログインなら 401）
-  const { userId } = await auth();
+  const authResult = await auth();
+  const { userId } = authResult;
   if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Clerk JWT トークンを取得（バックエンドのユーザー認証用）
+  const clerkToken = await authResult.getToken();
+  if (!clerkToken) {
+    return NextResponse.json({ error: 'Failed to get Clerk token' }, { status: 401 });
   }
 
   // 2) ターゲットURL組み立て
@@ -55,10 +62,11 @@ async function handleRequest(request: NextRequest, params: { path: string[] }, m
 
   // 4) ローカル or Cloud Run 判定
   if (USE_LOCAL_BACKEND || process.env.NODE_ENV === 'development') {
-    // ローカル: ID Token 不要、必要なら Authorization を透過
-    const headers: HeadersInit = { 'Content-Type': 'application/json' };
-    const authHeader = request.headers.get('authorization');
-    if (authHeader) headers['authorization'] = authHeader;
+    // ローカル: Cloud Run ID Token 不要、Clerk JWT は送信
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${clerkToken}`,
+    };
 
     const res = await fetch(targetUrl, {
       method,
@@ -103,7 +111,10 @@ async function handleRequest(request: NextRequest, params: { path: string[] }, m
     url: targetUrl,
     method: method as 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH',
     data,
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${clerkToken}`,
+    },
     validateStatus: () => true,
     responseType: 'json',
   });
