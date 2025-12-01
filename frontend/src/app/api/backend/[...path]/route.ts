@@ -118,18 +118,23 @@ async function handleRequest(request: NextRequest, params: { path: string[] }, m
   return NextResponse.json(response.data);
 }
 
-export async function GET(req: NextRequest, context: any) {
-  return handleRequest(req, context.params, 'GET');
+export async function GET(req: NextRequest, context: { params: Promise<{ path: string[] }> }) {
+  const params = await context.params;
+  return handleRequest(req, params, 'GET');
 }
-export async function POST(req: NextRequest, context: any) {
-  return handleRequest(req, context.params, 'POST');
+export async function POST(req: NextRequest, context: { params: Promise<{ path: string[] }> }) {
+  const params = await context.params;
+  return handleRequest(req, params, 'POST');
 }
-export async function PUT(req: NextRequest, context: any) {
-  return handleRequest(req, context.params, 'PUT');
+export async function PUT(req: NextRequest, context: { params: Promise<{ path: string[] }> }) {
+  const params = await context.params;
+  return handleRequest(req, params, 'PUT');
 }
-export async function PATCH(req: NextRequest, context: any) {
-  return handleRequest(req, context.params, 'PATCH');
+export async function PATCH(req: NextRequest, context: { params: Promise<{ path: string[] }> }) {
+  const params = await context.params;
+  return handleRequest(req, params, 'PATCH');
 }
-export async function DELETE(req: NextRequest, context: any) {
-  return handleRequest(req, context.params, 'DELETE');
+export async function DELETE(req: NextRequest, context: { params: Promise<{ path: string[] }> }) {
+  const params = await context.params;
+  return handleRequest(req, params, 'DELETE');
 }
