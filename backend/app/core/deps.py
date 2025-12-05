@@ -135,6 +135,12 @@ async def get_current_user(
     if user is None:
         clerk_user = await get_clerk_user_info(clerk_user_id, settings.clerk_secret_key)
         
+        if not clerk_user:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to fetch user information from Clerk",
+            )
+        
         email = None
         if clerk_user.get("email_addresses"):
             for email_obj in clerk_user.get("email_addresses", []):
@@ -169,9 +175,15 @@ async def get_current_user(
         
         try:
             user = await user_repo.create_from_clerk(new_user)
+            print(f"Created new user: {user.email} (role: {user.role})")
         except Exception as e:
+            print(f"Error creating user: {str(e)}")
+            # 再試行: 既に作成されている可能性がある
             user = await user_repo.find_by_clerk_id(clerk_user_id)
             if user is None:
+                # エラーの詳細をログに出力
+                import traceback
+                print(f"Traceback: {traceback.format_exc()}")
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                     detail=f"Failed to create user: {str(e)}",

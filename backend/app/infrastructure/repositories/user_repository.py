@@ -39,25 +39,43 @@ class UserRepository:
         return User(**response.data[0])
 
     async def create_from_clerk(self, user_data: UserCreate) -> User:
+        from datetime import datetime, timezone
+        from uuid import uuid4
+        
+        # IDとタイムスタンプを明示的に生成
         data = user_data.model_dump(mode="json")
+        data["id"] = str(uuid4())
+        now = datetime.now(timezone.utc).isoformat()
+        data["created_at"] = now
+        data["updated_at"] = now
+        
         try:
             response = self.client.table(self.table).insert(data).execute()
-            return User(**response.data[0])
+            if response.data:
+                return User(**response.data[0])
+            raise ValueError("No data returned from insert")
         except APIError as e:
-            if "23505" in str(e):
+            if "23505" in str(e) or "duplicate" in str(e).lower():
+                # 既に存在する場合は取得して返す
                 existing = await self.find_by_clerk_id(user_data.clerk_id)
                 if existing:
                     return existing
                 existing_by_email = await self.find_by_email(user_data.email)
                 if existing_by_email:
-                    update_data = {"clerk_id": user_data.clerk_id, "name": user_data.name}
+                    # メールアドレスで既存ユーザーが見つかった場合、clerk_idを更新
+                    update_data = {
+                        "clerk_id": user_data.clerk_id, 
+                        "name": user_data.name,
+                        "updated_at": datetime.now(timezone.utc).isoformat()
+                    }
                     response = (
                         self.client.table(self.table)
                         .update(update_data)
                         .eq("email", user_data.email)
                         .execute()
                     )
-                    return User(**response.data[0])
+                    if response.data:
+                        return User(**response.data[0])
             raise
 
     async def upsert_from_clerk(self, user_data: UserCreate) -> User:
