@@ -449,32 +449,7 @@ export const theme = createTheme({
         },
       },
     },
-    MuiDataGrid: {
-      styleOverrides: {
-        root: {
-          border: 'none',
-          '& .MuiDataGrid-columnHeaders': {
-            backgroundColor: colors.background.subtle,
-            borderBottom: `1px solid ${colors.border.light}`,
-          },
-          '& .MuiDataGrid-columnHeaderTitle': {
-            fontWeight: 600,
-            fontSize: '0.75rem',
-            color: colors.neutral[600],
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
-          },
-          '& .MuiDataGrid-cell': {
-            borderBottomColor: colors.border.light,
-            padding: '12px 16px',
-          },
-          '& .MuiDataGrid-row:hover': {
-            backgroundColor: alpha(colors.primary.main, 0.02),
-          },
-        },
-      },
-    },
-    MuiPaper: {
+MuiPaper: {
       styleOverrides: {
         root: {
           backgroundImage: 'none',

@@ -52,10 +52,29 @@ html {
 /* MUI Data Grid improvements */
 .MuiDataGrid-root {
   font-size: 0.875rem;
+  border: none !important;
+}
+
+.MuiDataGrid-root .MuiDataGrid-columnHeaders {
+  background-color: #f1f5f9;
+  border-bottom: 1px solid #e2e8f0;
 }
 
 .MuiDataGrid-columnHeaderTitle {
   font-weight: 600 !important;
+  font-size: 0.75rem;
+  color: #52525b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.MuiDataGrid-root .MuiDataGrid-cell {
+  border-bottom-color: #e2e8f0;
+  padding: 12px 16px;
+}
+
+.MuiDataGrid-root .MuiDataGrid-row:hover {
+  background-color: rgba(59, 130, 246, 0.02);
 }
 
 /* Smooth transitions for cards */
