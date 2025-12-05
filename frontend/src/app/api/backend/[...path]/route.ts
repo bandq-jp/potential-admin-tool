@@ -38,13 +38,21 @@ async function handleRequest(request: NextRequest, params: { path: string[] }, m
   // 2) ターゲットURL組み立て
   const path = params.path.join('/');
   const search = request.nextUrl.searchParams.toString();
-  const base = USE_LOCAL_BACKEND ? LOCAL_API_BASE_URL : BACKEND_BASE_URL;
-  if (!base) {
-    return NextResponse.json(
-      { error: 'BACKEND_BASE_URL is not configured' },
-      { status: 500 }
-    );
+  
+  // Vercel環境ではFastAPIが/api/v1に直接デプロイされている
+  // BACKEND_BASE_URLが設定されていない場合は/api/v1を使用
+  let base: string;
+  if (USE_LOCAL_BACKEND || process.env.NODE_ENV === 'development') {
+    base = LOCAL_API_BASE_URL;
+  } else if (BACKEND_BASE_URL && BACKEND_BASE_URL !== LOCAL_API_BASE_URL) {
+    base = BACKEND_BASE_URL;
+  } else {
+    // Vercel環境: FastAPIは/api/v1に直接デプロイされている
+    const protocol = request.headers.get('x-forwarded-proto') || 'https';
+    const host = request.headers.get('host') || request.nextUrl.host;
+    base = `${protocol}://${host}/api/v1`;
   }
+  
   const targetUrl = `${base.replace(/\/$/, '')}/${path}${search ? `?${search}` : ''}`;
 
   // 3) リクエストボディ
@@ -60,9 +68,12 @@ async function handleRequest(request: NextRequest, params: { path: string[] }, m
     }
   }
 
-  // 4) ローカル or Cloud Run 判定
-  if (USE_LOCAL_BACKEND || process.env.NODE_ENV === 'development') {
-    // ローカル: Cloud Run ID Token 不要、Clerk JWT は送信
+  // 4) Vercel環境（/api/v1への直接アクセス）またはローカル環境
+  // Cloud Runを使用する場合のみGCP認証が必要
+  const isCloudRun = BACKEND_BASE_URL && BACKEND_BASE_URL.includes('.run.app');
+  
+  if (!isCloudRun || USE_LOCAL_BACKEND || process.env.NODE_ENV === 'development') {
+    // Vercel環境またはローカル: Clerk JWTのみ送信
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${clerkToken}`,
@@ -83,9 +94,9 @@ async function handleRequest(request: NextRequest, params: { path: string[] }, m
     return new NextResponse(text, { status: res.status, headers: { 'Content-Type': 'application/json' } });
   }
 
-  // 本番: Cloud Run 認証（ID Token）
+  // Cloud Run環境: GCP認証（ID Token）が必要
   if (!GCP_SA_JSON) {
-    return NextResponse.json({ error: 'GCP_SA_JSON is missing' }, { status: 500 });
+    return NextResponse.json({ error: 'GCP_SA_JSON is missing for Cloud Run' }, { status: 500 });
   }
 
   let credentials;
