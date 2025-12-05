@@ -5,8 +5,10 @@
 }
 
 body {
-  font-family: var(--font-noto-sans-jp), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+  font-family: var(--font-noto-sans-jp), "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 * {
@@ -17,9 +19,80 @@ html,
 body {
   margin: 0;
   padding: 0;
+  background-color: #f8fafc;
 }
 
 a {
   text-decoration: none;
   color: inherit;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Custom selection color */
+::selection {
+  background-color: rgba(59, 130, 246, 0.2);
+  color: inherit;
+}
+
+/* Focus outline for accessibility */
+:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* Recharts tooltip styling */
+.recharts-tooltip-wrapper {
+  z-index: 1000 !important;
+}
+
+/* MUI Data Grid improvements */
+.MuiDataGrid-root {
+  font-size: 0.875rem;
+}
+
+.MuiDataGrid-columnHeaderTitle {
+  font-weight: 600 !important;
+}
+
+/* Smooth transitions for cards */
+.MuiCard-root {
+  transition: box-shadow 0.2s ease-in-out, transform 0.2s ease-in-out;
+}
+
+/* Better button focus states */
+.MuiButton-root:focus-visible {
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+}
+
+/* Chip improvements */
+.MuiChip-root {
+  transition: all 0.15s ease-in-out;
+}
+
+/* Table row hover */
+.MuiTableRow-root:hover {
+  transition: background-color 0.15s ease-in-out;
+}
+
+/* Avatar improvements */
+.MuiAvatar-root {
+  transition: transform 0.15s ease-in-out;
+}
+
+.MuiAvatar-root:hover {
+  transform: scale(1.05);
+}
+
+/* IconButton hover effect */
+.MuiIconButton-root {
+  transition: all 0.15s ease-in-out;
+}
+
+/* ListItemButton transitions */
+.MuiListItemButton-root {
+  transition: all 0.15s ease-in-out;
 }

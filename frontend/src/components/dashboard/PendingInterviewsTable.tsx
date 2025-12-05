@@ -16,8 +16,9 @@ import {
   TableHead,
   TableRow,
   Avatar,
+  alpha,
 } from '@mui/material';
-import { Settings } from 'lucide-react';
+import { Filter, ArrowRight } from 'lucide-react';
 import type { CandidateWithRelations } from '@/domain/entities/candidate';
 
 interface PendingInterviewsTableProps {
@@ -34,110 +35,190 @@ export function PendingInterviewsTable({ candidates }: PendingInterviewsTablePro
       <CardHeader
         title={
           <Box display="flex" alignItems="center" gap={2}>
-            <Typography variant="h6" fontWeight="bold">
+            <Typography 
+              variant="h6" 
+              sx={{
+                fontWeight: 600,
+                fontSize: '1rem',
+              }}
+            >
               未入力の0.5次面談ログ
             </Typography>
             <Chip
               label={`要対応: ${pendingCandidates.length}件`}
-              color="error"
               size="small"
-              sx={{ bgcolor: '#fee2e2', color: '#dc2626', fontWeight: 'bold' }}
+              sx={{ 
+                bgcolor: '#fef2f2', 
+                color: '#dc2626', 
+                fontWeight: 600,
+                fontSize: '0.75rem',
+                height: 24,
+              }}
             />
           </Box>
         }
         action={
-          <Box>
-            <Button startIcon={<Settings size={16} />} sx={{ color: 'text.secondary', mr: 1 }}>
+          <Box display="flex" gap={1}>
+            <Button 
+              startIcon={<Filter size={16} />} 
+              size="small"
+              sx={{ 
+                color: 'text.secondary',
+                fontWeight: 500,
+                '&:hover': {
+                  bgcolor: 'action.hover',
+                },
+              }}
+            >
               フィルター
             </Button>
-            <Button component={Link} href="/dashboard/candidates" sx={{ color: 'primary.main' }}>
+            <Button 
+              component={Link} 
+              href="/dashboard/candidates" 
+              endIcon={<ArrowRight size={16} />}
+              size="small"
+              sx={{ 
+                color: 'primary.main',
+                fontWeight: 600,
+              }}
+            >
               すべて見る
             </Button>
           </Box>
         }
+        sx={{
+          px: 3,
+          py: 2.5,
+        }}
       />
       <Divider />
       <TableContainer>
         <Table>
-          <TableHead sx={{ bgcolor: '#f8fafc' }}>
+          <TableHead>
             <TableRow>
-              <TableCell sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>
-                候補者名
-              </TableCell>
-              <TableCell sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>
-                応募ポジション
-              </TableCell>
-              <TableCell sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>
-                エージェント
-              </TableCell>
-              <TableCell sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>
-                面談日
-              </TableCell>
-              <TableCell sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>
-                担当者
-              </TableCell>
-              <TableCell align="right" sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>
-                アクション
-              </TableCell>
+              <TableCell>候補者名</TableCell>
+              <TableCell>応募ポジション</TableCell>
+              <TableCell>エージェント</TableCell>
+              <TableCell>面談日</TableCell>
+              <TableCell>担当者</TableCell>
+              <TableCell align="right">アクション</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {pendingCandidates.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
-                  <Typography color="text.secondary">
-                    未入力の面談ログはありません
-                  </Typography>
+                <TableCell colSpan={6} align="center" sx={{ py: 6 }}>
+                  <Box 
+                    sx={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: 1,
+                    }}
+                  >
+                    <Typography 
+                      sx={{
+                        color: 'text.secondary',
+                        fontSize: '0.875rem',
+                      }}
+                    >
+                      未入力の面談ログはありません
+                    </Typography>
+                  </Box>
                 </TableCell>
               </TableRow>
             ) : (
               pendingCandidates.slice(0, 5).map((row) => (
                 <TableRow
                   key={row.id}
-                  hover
-                  sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+                  sx={{ 
+                    '&:last-child td, &:last-child th': { border: 0 },
+                    transition: 'background-color 0.15s ease-in-out',
+                  }}
                 >
                   <TableCell>
                     <Box display="flex" alignItems="center" gap={1.5}>
                       <Avatar
-                        sx={{ bgcolor: 'primary.light', width: 36, height: 36, fontSize: '0.875rem' }}
+                        sx={{ 
+                          bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1),
+                          color: 'primary.main',
+                          width: 36, 
+                          height: 36, 
+                          fontSize: '0.875rem',
+                          fontWeight: 600,
+                        }}
                       >
                         {row.name.charAt(0)}
                       </Avatar>
-                      <Typography variant="subtitle2" fontWeight="bold">
+                      <Typography 
+                        variant="subtitle2" 
+                        sx={{
+                          fontWeight: 600,
+                          color: 'text.primary',
+                        }}
+                      >
                         {row.name}
                       </Typography>
                     </Box>
                   </TableCell>
                   <TableCell>
-                    <Chip
-                      label={row.job_position_name}
-                      size="small"
-                      variant="outlined"
-                      sx={{ borderColor: '#e2e8f0', borderRadius: 1 }}
-                    />
-                    <Typography
-                      variant="caption"
-                      display="block"
-                      color="text.secondary"
-                      sx={{ mt: 0.5 }}
-                    >
-                      {row.company_name}
-                    </Typography>
+                    <Box>
+                      <Chip
+                        label={row.job_position_name}
+                        size="small"
+                        variant="outlined"
+                        sx={{ 
+                          borderColor: 'divider',
+                          borderRadius: 1.5,
+                          fontWeight: 500,
+                          fontSize: '0.75rem',
+                        }}
+                      />
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          display: 'block',
+                          color: 'text.secondary',
+                          mt: 0.5,
+                        }}
+                      >
+                        {row.company_name}
+                      </Typography>
+                    </Box>
                   </TableCell>
                   <TableCell>
-                    <Typography variant="body2">{row.agent_company_name ?? '-'}</Typography>
-                    <Typography variant="caption" color="text.secondary">
+                    <Typography 
+                      variant="body2"
+                      sx={{ fontWeight: 500 }}
+                    >
+                      {row.agent_company_name ?? '-'}
+                    </Typography>
+                    <Typography 
+                      variant="caption" 
+                      sx={{ color: 'text.secondary' }}
+                    >
                       {row.agent_contact_name}
                     </Typography>
                   </TableCell>
                   <TableCell>
-                    <Typography variant="body2" color="error.main" fontWeight="bold">
-                      {row.stage_0_5_date}
-                    </Typography>
+                    <Chip
+                      label={row.stage_0_5_date}
+                      size="small"
+                      sx={{
+                        bgcolor: '#fef2f2',
+                        color: '#dc2626',
+                        fontWeight: 600,
+                        fontSize: '0.75rem',
+                      }}
+                    />
                   </TableCell>
                   <TableCell>
-                    <Typography variant="body2">{row.owner_user_name ?? '-'}</Typography>
+                    <Typography 
+                      variant="body2"
+                      sx={{ fontWeight: 500 }}
+                    >
+                      {row.owner_user_name ?? '-'}
+                    </Typography>
                   </TableCell>
                   <TableCell align="right">
                     <Button
@@ -146,7 +227,12 @@ export function PendingInterviewsTable({ candidates }: PendingInterviewsTablePro
                       variant="contained"
                       size="small"
                       disableElevation
-                      sx={{ borderRadius: 1 }}
+                      sx={{ 
+                        borderRadius: 1.5,
+                        px: 2,
+                        fontWeight: 600,
+                        fontSize: '0.8125rem',
+                      }}
                     >
                       評価入力
                     </Button>
@@ -160,4 +246,3 @@ export function PendingInterviewsTable({ candidates }: PendingInterviewsTablePro
     </Card>
   );
 }
-

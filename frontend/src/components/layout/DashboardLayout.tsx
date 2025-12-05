@@ -24,7 +24,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const currentWidth = sidebarOpen ? SIDEBAR_WIDTH : SIDEBAR_COLLAPSED_WIDTH;
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>
       <Header
         onMenuClick={handleMobileToggle}
         onSidebarToggle={handleSidebarToggle}
@@ -41,16 +41,22 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         component="main"
         sx={{
           flexGrow: 1,
-          p: 3,
+          p: { xs: 2, sm: 3, md: 4 },
           ml: { xs: 0, md: `${currentWidth}px` },
           width: { xs: '100%', md: `calc(100% - ${currentWidth}px)` },
-          bgcolor: 'background.default',
           minHeight: '100vh',
-          transition: 'margin-left 0.2s ease-in-out, width 0.2s ease-in-out',
+          transition: 'margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1), width 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
         }}
       >
-        <Toolbar />
-        {children}
+        <Toolbar sx={{ mb: 2 }} />
+        <Box
+          sx={{
+            maxWidth: 1600,
+            mx: 'auto',
+          }}
+        >
+          {children}
+        </Box>
       </Box>
     </Box>
   );

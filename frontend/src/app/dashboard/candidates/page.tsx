@@ -14,6 +14,7 @@ import {
   IconButton,
   Avatar,
   Tooltip,
+  alpha,
 } from '@mui/material';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { Plus, Download, Eye, Edit, Trash2 } from 'lucide-react';
@@ -59,11 +60,23 @@ export default function CandidatesPage() {
       headerName: '候補者名',
       width: 180,
       renderCell: (params) => (
-        <Box display="flex" alignItems="center" gap={1}>
-          <Avatar sx={{ width: 32, height: 32, fontSize: '0.875rem', bgcolor: 'primary.light' }}>
+        <Box display="flex" alignItems="center" gap={1.5}>
+          <Avatar 
+            sx={{ 
+              width: 32, 
+              height: 32, 
+              fontSize: '0.8125rem',
+              fontWeight: 600,
+              bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1),
+              color: 'primary.main',
+            }}
+          >
             {params.row.name.charAt(0)}
           </Avatar>
-          <Typography variant="body2" fontWeight={600}>
+          <Typography 
+            variant="body2" 
+            sx={{ fontWeight: 600, color: 'text.primary' }}
+          >
             {params.row.name}
           </Typography>
         </Box>
@@ -73,20 +86,38 @@ export default function CandidatesPage() {
       field: 'company_name',
       headerName: '企業',
       width: 160,
+      renderCell: (params) => (
+        <Typography variant="body2" sx={{ fontWeight: 500 }}>
+          {params.value}
+        </Typography>
+      ),
     },
     {
       field: 'job_position_name',
       headerName: 'ポジション',
       width: 140,
       renderCell: (params) => (
-        <Chip label={params.value} size="small" variant="outlined" />
+        <Chip 
+          label={params.value} 
+          size="small" 
+          variant="outlined" 
+          sx={{ 
+            borderRadius: 1.5,
+            fontWeight: 500,
+            fontSize: '0.75rem',
+          }}
+        />
       ),
     },
     {
       field: 'agent_company_name',
       headerName: 'エージェント',
       width: 140,
-      renderCell: (params) => params.value || '-',
+      renderCell: (params) => (
+        <Typography variant="body2" sx={{ color: params.value ? 'text.primary' : 'text.secondary' }}>
+          {params.value || '-'}
+        </Typography>
+      ),
     },
     {
       field: 'stage_0_5_result',
@@ -94,7 +125,14 @@ export default function CandidatesPage() {
       width: 100,
       renderCell: (params) => {
         const result = stageResultLabels[params.value as StageResult];
-        return <Chip label={result.label} size="small" color={result.color} />;
+        return (
+          <Chip 
+            label={result.label} 
+            size="small" 
+            color={result.color}
+            sx={{ fontWeight: 600, fontSize: '0.6875rem' }}
+          />
+        );
       },
     },
     {
@@ -103,7 +141,14 @@ export default function CandidatesPage() {
       width: 100,
       renderCell: (params) => {
         const result = stageResultLabels[params.value as StageResult];
-        return <Chip label={result.label} size="small" color={result.color} />;
+        return (
+          <Chip 
+            label={result.label} 
+            size="small" 
+            color={result.color}
+            sx={{ fontWeight: 600, fontSize: '0.6875rem' }}
+          />
+        );
       },
     },
     {
@@ -112,7 +157,14 @@ export default function CandidatesPage() {
       width: 100,
       renderCell: (params) => {
         const result = finalResultLabels[params.value as FinalStageResult];
-        return <Chip label={result.label} size="small" color={result.color} />;
+        return (
+          <Chip 
+            label={result.label} 
+            size="small" 
+            color={result.color}
+            sx={{ fontWeight: 600, fontSize: '0.6875rem' }}
+          />
+        );
       },
     },
     {
@@ -121,7 +173,12 @@ export default function CandidatesPage() {
       width: 100,
       renderCell: (params) =>
         params.value ? (
-          <Chip label="あり" size="small" color="error" />
+          <Chip 
+            label="あり" 
+            size="small" 
+            color="error"
+            sx={{ fontWeight: 600, fontSize: '0.6875rem' }}
+          />
         ) : null,
     },
     {
@@ -130,12 +187,16 @@ export default function CandidatesPage() {
       width: 140,
       sortable: false,
       renderCell: (params) => (
-        <Box>
+        <Box display="flex" gap={0.5}>
           <Tooltip title="詳細">
             <IconButton
               component={Link}
               href={`/dashboard/candidates/${params.row.id}`}
               size="small"
+              sx={{ 
+                color: 'text.secondary',
+                '&:hover': { color: 'primary.main' },
+              }}
             >
               <Eye size={16} />
             </IconButton>
@@ -145,12 +206,23 @@ export default function CandidatesPage() {
               component={Link}
               href={`/dashboard/candidates/${params.row.id}/edit`}
               size="small"
+              sx={{ 
+                color: 'text.secondary',
+                '&:hover': { color: 'primary.main' },
+              }}
             >
               <Edit size={16} />
             </IconButton>
           </Tooltip>
           <Tooltip title="削除">
-            <IconButton size="small" onClick={() => handleDelete(params.row.id)}>
+            <IconButton 
+              size="small" 
+              onClick={() => handleDelete(params.row.id)}
+              sx={{ 
+                color: 'text.secondary',
+                '&:hover': { color: 'error.main' },
+              }}
+            >
               <Trash2 size={16} />
             </IconButton>
           </Tooltip>
@@ -161,10 +233,31 @@ export default function CandidatesPage() {
 
   return (
     <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4">候補者管理</Typography>
-        <Box display="flex" gap={2}>
-          <Button variant="outlined" startIcon={<Download size={18} />}>
+      {/* Page Header */}
+      <Box 
+        display="flex" 
+        justifyContent="space-between" 
+        alignItems={{ xs: 'flex-start', sm: 'center' }}
+        flexDirection={{ xs: 'column', sm: 'row' }}
+        gap={2}
+        mb={3}
+      >
+        <Typography 
+          variant="h4"
+          sx={{
+            fontWeight: 700,
+            color: 'text.primary',
+            letterSpacing: '-0.02em',
+          }}
+        >
+          候補者管理
+        </Typography>
+        <Box display="flex" gap={1.5}>
+          <Button 
+            variant="outlined" 
+            startIcon={<Download size={18} />}
+            sx={{ fontWeight: 600 }}
+          >
             CSVエクスポート
           </Button>
           <Button
@@ -173,27 +266,59 @@ export default function CandidatesPage() {
             variant="contained"
             startIcon={<Plus size={18} />}
             disableElevation
+            sx={{
+              fontWeight: 600,
+              boxShadow: (theme) => `0 4px 14px ${alpha(theme.palette.primary.main, 0.25)}`,
+              '&:hover': {
+                boxShadow: (theme) => `0 6px 20px ${alpha(theme.palette.primary.main, 0.35)}`,
+              },
+            }}
           >
             新規登録
           </Button>
         </Box>
       </Box>
 
+      {/* Stats Chips */}
       {stats && (
-        <Box display="flex" gap={2} mb={3} flexWrap="wrap">
-          <Chip label={`全体: ${stats.total}名`} />
-          <Chip label={`0.5次通過: ${stats.stage_0_5_passed}名`} color="primary" />
-          <Chip label={`一次通過: ${stats.stage_first_passed}名`} />
-          <Chip label={`内定: ${stats.stage_final_offer}名`} color="success" />
-          <Chip label={`入社: ${stats.hired}名`} color="success" variant="outlined" />
+        <Box display="flex" gap={1.5} mb={3} flexWrap="wrap">
+          <Chip 
+            label={`全体: ${stats.total}名`}
+            sx={{ fontWeight: 600 }}
+          />
+          <Chip 
+            label={`0.5次通過: ${stats.stage_0_5_passed}名`} 
+            color="primary"
+            sx={{ fontWeight: 600 }}
+          />
+          <Chip 
+            label={`一次通過: ${stats.stage_first_passed}名`}
+            sx={{ fontWeight: 600 }}
+          />
+          <Chip 
+            label={`内定: ${stats.stage_final_offer}名`} 
+            color="success"
+            sx={{ fontWeight: 600 }}
+          />
+          <Chip 
+            label={`入社: ${stats.hired}名`} 
+            color="success" 
+            variant="outlined"
+            sx={{ fontWeight: 600 }}
+          />
           {stats.mismatch > 0 && (
-            <Chip label={`ミスマッチ: ${stats.mismatch}名`} color="error" />
+            <Chip 
+              label={`ミスマッチ: ${stats.mismatch}名`} 
+              color="error"
+              sx={{ fontWeight: 600 }}
+            />
           )}
         </Box>
       )}
 
+      {/* Filter Card */}
       <Card sx={{ mb: 3 }}>
-        <CardContent sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+        <CardContent sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', py: 2 }}>
           <TextField
             select
             label="企業"
@@ -227,6 +352,7 @@ export default function CandidatesPage() {
         </CardContent>
       </Card>
 
+      {/* Data Grid */}
       <Card>
         <DataGrid
           rows={candidates}
@@ -240,11 +366,21 @@ export default function CandidatesPage() {
           autoHeight
           sx={{
             border: 'none',
-            '& .MuiDataGrid-cell': { py: 1 },
+            '& .MuiDataGrid-cell': { 
+              py: 1.5,
+              display: 'flex',
+              alignItems: 'center',
+            },
+            '& .MuiDataGrid-columnHeader': {
+              bgcolor: 'background.default',
+            },
+            '& .MuiDataGrid-footerContainer': {
+              borderTop: '1px solid',
+              borderColor: 'divider',
+            },
           }}
         />
       </Card>
     </Box>
   );
 }
-

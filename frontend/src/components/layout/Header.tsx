@@ -12,9 +12,11 @@ import {
   Badge,
   InputBase,
   Tooltip,
+  alpha,
 } from '@mui/material';
 import { Search, Bell, HelpCircle, Menu as MenuIcon, ChevronRight, PanelLeftClose, PanelLeft } from 'lucide-react';
 import { useDashboardStats } from '@/hooks/useCandidates';
+import { colors } from '@/config/theme';
 
 interface HeaderProps {
   onMenuClick?: () => void;
@@ -32,6 +34,7 @@ const pathTitles: Record<string, string> = {
   '/dashboard/criteria': '定性要件マスタ',
   '/dashboard/agents': 'エージェント',
   '/dashboard/settings': '設定',
+  '/dashboard/settings/users': 'ユーザー管理',
 };
 
 export function Header({ onMenuClick, onSidebarToggle, sidebarOpen = true, sidebarWidth = 260 }: HeaderProps) {
@@ -41,7 +44,15 @@ export function Header({ onMenuClick, onSidebarToggle, sidebarOpen = true, sideb
 
   const pendingCount = stats?.pending_interviews ?? 0;
 
-  const currentTitle = pathTitles[pathname] ?? 'ページ';
+  // パス名から最も適切なタイトルを取得
+  const currentTitle = (() => {
+    if (pathTitles[pathname]) return pathTitles[pathname];
+    // 部分一致でタイトルを検索
+    const matchedPath = Object.keys(pathTitles)
+      .filter(path => pathname.startsWith(path))
+      .sort((a, b) => b.length - a.length)[0];
+    return matchedPath ? pathTitles[matchedPath] : 'ページ';
+  })();
 
   return (
     <AppBar
@@ -51,21 +62,22 @@ export function Header({ onMenuClick, onSidebarToggle, sidebarOpen = true, sideb
         width: { xs: '100%', md: `calc(100% - ${sidebarWidth}px)` },
         ml: { xs: 0, md: `${sidebarWidth}px` },
         bgcolor: 'background.paper',
-        borderBottom: '1px solid #e2e8f0',
+        borderBottom: '1px solid',
+        borderColor: 'divider',
         color: 'text.primary',
         zIndex: (theme) => theme.zIndex.drawer + 1,
-        transition: 'width 0.2s ease-in-out, margin-left 0.2s ease-in-out',
+        transition: 'width 0.25s cubic-bezier(0.4, 0, 0.2, 1), margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
       }}
     >
-      <Toolbar>
+      <Toolbar sx={{ gap: 1 }}>
         <IconButton
           color="inherit"
           aria-label="open drawer"
           edge="start"
           onClick={onMenuClick}
-          sx={{ mr: 2, display: { md: 'none' } }}
+          sx={{ display: { md: 'none' } }}
         >
-          <MenuIcon />
+          <MenuIcon size={20} />
         </IconButton>
 
         <IconButton
@@ -73,17 +85,35 @@ export function Header({ onMenuClick, onSidebarToggle, sidebarOpen = true, sideb
           aria-label="toggle sidebar"
           edge="start"
           onClick={onSidebarToggle}
-          sx={{ mr: 2, display: { xs: 'none', md: 'flex' } }}
+          sx={{ 
+            display: { xs: 'none', md: 'flex' },
+            color: 'text.secondary',
+            '&:hover': {
+              color: 'text.primary',
+            },
+          }}
         >
           {sidebarOpen ? <PanelLeftClose size={20} /> : <PanelLeft size={20} />}
         </IconButton>
 
-        <Box sx={{ display: 'flex', alignItems: 'center', color: 'text.secondary' }}>
-          <Typography variant="body2" sx={{ mr: 1 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          <Typography 
+            variant="body2" 
+            sx={{ 
+              color: 'text.secondary',
+              display: { xs: 'none', sm: 'block' },
+            }}
+          >
             ホーム
           </Typography>
-          <ChevronRight size={16} />
-          <Typography variant="subtitle1" sx={{ ml: 1, color: 'text.primary' }}>
+          <ChevronRight size={16} style={{ color: colors.neutral[400] }} />
+          <Typography 
+            variant="subtitle1" 
+            sx={{ 
+              color: 'text.primary',
+              fontWeight: 600,
+            }}
+          >
             {currentTitle}
           </Typography>
         </Box>
@@ -94,18 +124,28 @@ export function Header({ onMenuClick, onSidebarToggle, sidebarOpen = true, sideb
           sx={{
             position: 'relative',
             borderRadius: 2,
-            backgroundColor: '#f1f5f9',
-            '&:hover': { backgroundColor: '#e2e8f0' },
-            mr: 2,
-            ml: 0,
+            backgroundColor: (theme) => alpha(theme.palette.primary.main, 0.04),
+            border: '1px solid',
+            borderColor: 'divider',
+            transition: 'all 0.2s ease-in-out',
+            '&:hover': { 
+              backgroundColor: (theme) => alpha(theme.palette.primary.main, 0.08),
+              borderColor: 'primary.light',
+            },
+            '&:focus-within': {
+              borderColor: 'primary.main',
+              backgroundColor: 'background.paper',
+              boxShadow: (theme) => `0 0 0 3px ${alpha(theme.palette.primary.main, 0.1)}`,
+            },
+            mr: 1,
             width: '100%',
-            maxWidth: 400,
-            display: { xs: 'none', sm: 'block' },
+            maxWidth: 320,
+            display: { xs: 'none', md: 'block' },
           }}
         >
           <Box
             sx={{
-              px: 2,
+              px: 1.5,
               height: '100%',
               position: 'absolute',
               pointerEvents: 'none',
@@ -121,7 +161,18 @@ export function Header({ onMenuClick, onSidebarToggle, sidebarOpen = true, sideb
             placeholder="候補者、企業を検索..."
             value={searchValue}
             onChange={(e) => setSearchValue(e.target.value)}
-            sx={{ color: 'inherit', width: '100%', p: 1, pl: 6 }}
+            sx={{ 
+              color: 'inherit', 
+              width: '100%', 
+              py: 1,
+              px: 1.5,
+              pl: 5,
+              fontSize: '0.875rem',
+              '& input::placeholder': {
+                color: 'text.secondary',
+                opacity: 1,
+              },
+            }}
           />
         </Box>
 
@@ -129,17 +180,40 @@ export function Header({ onMenuClick, onSidebarToggle, sidebarOpen = true, sideb
           <IconButton
             component={Link}
             href="/dashboard/interviews"
-            size="large"
-            color="inherit"
+            sx={{
+              color: 'text.secondary',
+              '&:hover': {
+                color: 'text.primary',
+              },
+            }}
           >
-            <Badge badgeContent={pendingCount} color="error">
+            <Badge 
+              badgeContent={pendingCount} 
+              color="error"
+              sx={{
+                '& .MuiBadge-badge': {
+                  fontSize: '0.625rem',
+                  minWidth: 18,
+                  height: 18,
+                },
+              }}
+            >
               <Bell size={20} />
             </Badge>
           </IconButton>
         </Tooltip>
-        <IconButton size="large" color="inherit">
-          <HelpCircle size={20} />
-        </IconButton>
+        <Tooltip title="ヘルプ">
+          <IconButton 
+            sx={{
+              color: 'text.secondary',
+              '&:hover': {
+                color: 'text.primary',
+              },
+            }}
+          >
+            <HelpCircle size={20} />
+          </IconButton>
+        </Tooltip>
       </Toolbar>
     </AppBar>
   );

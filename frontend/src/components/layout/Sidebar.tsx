@@ -19,6 +19,7 @@ import {
   IconButton,
   Chip,
   Tooltip,
+  alpha,
 } from '@mui/material';
 import {
   LayoutDashboard,
@@ -89,41 +90,70 @@ export function Sidebar({ open = true, onClose, onToggle, variant = 'permanent' 
   const renderMenuItem = (item: { label: string; href: string; icon: React.ElementType; badge?: boolean; adminOnly?: boolean }) => {
     if (item.adminOnly && !isAdmin) return null;
 
+    const active = isActive(item.href);
+
     const content = (
       <ListItemButton
         component={Link}
         href={item.href}
-        selected={isActive(item.href)}
+        selected={active}
         sx={{
-          mx: 1,
           borderRadius: 2,
           minHeight: 44,
           justifyContent: open ? 'initial' : 'center',
-          px: open ? 2 : 2.5,
+          px: open ? 1.5 : 1.5,
+          mx: 1,
+          my: 0.5,
+          transition: 'all 0.2s ease-in-out',
+          '&.Mui-selected': {
+            bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
+            color: 'primary.main',
+            '& .MuiListItemIcon-root': {
+              color: 'primary.main',
+            },
+            '&:hover': {
+              bgcolor: (theme) => alpha(theme.palette.primary.main, 0.12),
+            },
+          },
+          '&:hover': {
+            bgcolor: 'action.hover',
+          },
         }}
       >
         <ListItemIcon
           sx={{
             minWidth: 0,
-            mr: open ? 2 : 'auto',
+            mr: open ? 1.5 : 'auto',
             justifyContent: 'center',
-            color: isActive(item.href) ? 'primary.main' : undefined,
+            color: active ? 'primary.main' : 'text.secondary',
+            transition: 'color 0.2s ease-in-out',
           }}
         >
-          <item.icon size={20} />
+          <item.icon size={20} strokeWidth={active ? 2.5 : 2} />
         </ListItemIcon>
         {open && (
           <>
             <ListItemText
               primary={item.label}
-              primaryTypographyProps={{ fontWeight: isActive(item.href) ? 600 : 400 }}
+              primaryTypographyProps={{ 
+                fontSize: '0.875rem',
+                fontWeight: active ? 600 : 500,
+              }}
             />
             {item.badge && activeCandidatesCount > 0 && (
               <Chip
                 label={activeCandidatesCount}
                 size="small"
                 color="primary"
-                sx={{ height: 20, fontSize: '0.7rem' }}
+                sx={{ 
+                  height: 22, 
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  minWidth: 28,
+                  '& .MuiChip-label': {
+                    px: 1,
+                  },
+                }}
               />
             )}
           </>
@@ -133,36 +163,74 @@ export function Sidebar({ open = true, onClose, onToggle, variant = 'permanent' 
 
     if (!open) {
       return (
-        <Tooltip title={item.label} placement="right" key={item.href}>
-          <ListItem disablePadding>{content}</ListItem>
+        <Tooltip title={item.label} placement="right" arrow key={item.href}>
+          <ListItem disablePadding sx={{ display: 'block' }}>{content}</ListItem>
         </Tooltip>
       );
     }
 
-    return <ListItem key={item.href} disablePadding>{content}</ListItem>;
+    return <ListItem key={item.href} disablePadding sx={{ display: 'block' }}>{content}</ListItem>;
   };
+
+  const SectionLabel = ({ children }: { children: React.ReactNode }) => (
+    open ? (
+      <Typography
+        variant="caption"
+        sx={{ 
+          px: 2.5, 
+          py: 1.5,
+          display: 'block', 
+          color: 'text.secondary', 
+          fontWeight: 600,
+          fontSize: '0.6875rem',
+          textTransform: 'uppercase',
+          letterSpacing: '0.08em',
+        }}
+      >
+        {children}
+      </Typography>
+    ) : (
+      <Divider sx={{ my: 1, mx: 2 }} />
+    )
+  );
 
   const drawerContent = (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <Toolbar sx={{ display: 'flex', alignItems: 'center', justifyContent: open ? 'flex-start' : 'center', px: open ? 3 : 1 }}>
-        <Box display="flex" alignItems="center" gap={1}>
+      <Toolbar 
+        sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: open ? 'flex-start' : 'center', 
+          px: open ? 2.5 : 1,
+          minHeight: '64px !important',
+        }}
+      >
+        <Box display="flex" alignItems="center" gap={1.5}>
           <Box
             sx={{
-              width: 32,
-              height: 32,
+              width: 36,
+              height: 36,
               bgcolor: 'primary.main',
-              borderRadius: 1,
+              borderRadius: 1.5,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               color: 'white',
               flexShrink: 0,
+              boxShadow: (theme) => `0 2px 8px ${alpha(theme.palette.primary.main, 0.3)}`,
             }}
           >
             <Briefcase size={20} />
           </Box>
           {open && (
-            <Typography variant="h6" color="primary" fontWeight={800} noWrap>
+            <Typography 
+              variant="h6" 
+              sx={{
+                fontWeight: 700,
+                color: 'text.primary',
+                letterSpacing: '-0.02em',
+              }}
+            >
               RecruitLog
             </Typography>
           )}
@@ -170,44 +238,23 @@ export function Sidebar({ open = true, onClose, onToggle, variant = 'permanent' 
       </Toolbar>
       <Divider />
 
-      <Box sx={{ flexGrow: 1, overflowY: 'auto', overflowX: 'hidden', py: 2 }}>
-        {open && (
-          <Typography
-            variant="caption"
-            sx={{ px: 3, mb: 1, display: 'block', color: 'text.secondary', fontWeight: 'bold' }}
-          >
-            MAIN
-          </Typography>
-        )}
-        <List>
+      <Box sx={{ flexGrow: 1, overflowY: 'auto', overflowX: 'hidden', py: 1.5 }}>
+        <SectionLabel>MAIN</SectionLabel>
+        <List disablePadding>
           {mainMenuItems.map(renderMenuItem)}
         </List>
 
-        <Box my={2} />
+        <Box mt={2} />
 
-        {open && (
-          <Typography
-            variant="caption"
-            sx={{ px: 3, mb: 1, display: 'block', color: 'text.secondary', fontWeight: 'bold' }}
-          >
-            MASTER DATA
-          </Typography>
-        )}
-        <List>
+        <SectionLabel>MASTER DATA</SectionLabel>
+        <List disablePadding>
           {masterMenuItems.map(renderMenuItem)}
         </List>
 
-        <Box my={2} />
+        <Box mt={2} />
 
-        {open && (
-          <Typography
-            variant="caption"
-            sx={{ px: 3, mb: 1, display: 'block', color: 'text.secondary', fontWeight: 'bold' }}
-          >
-            SYSTEM
-          </Typography>
-        )}
-        <List>
+        <SectionLabel>SYSTEM</SectionLabel>
+        <List disablePadding>
           {systemMenuItems.map(renderMenuItem)}
           {isAdmin && adminMenuItems.map((item) => renderMenuItem({ ...item, adminOnly: true }))}
         </List>
@@ -217,9 +264,21 @@ export function Sidebar({ open = true, onClose, onToggle, variant = 'permanent' 
         <>
           <Divider />
           <Box sx={{ p: 1, display: 'flex', justifyContent: open ? 'flex-end' : 'center' }}>
-            <IconButton onClick={onToggle} size="small">
-              {open ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
-            </IconButton>
+            <Tooltip title={open ? 'サイドバーを閉じる' : 'サイドバーを開く'} placement="right">
+              <IconButton 
+                onClick={onToggle} 
+                size="small"
+                sx={{
+                  color: 'text.secondary',
+                  '&:hover': {
+                    color: 'text.primary',
+                    bgcolor: 'action.hover',
+                  },
+                }}
+              >
+                {open ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}
+              </IconButton>
+            </Tooltip>
           </Box>
         </>
       )}
@@ -227,28 +286,96 @@ export function Sidebar({ open = true, onClose, onToggle, variant = 'permanent' 
       <Divider />
       <Box p={open ? 2 : 1}>
         {open ? (
-          <Card variant="outlined" sx={{ border: 'none', bgcolor: 'background.default' }}>
+          <Card 
+            variant="outlined" 
+            sx={{ 
+              border: 'none', 
+              bgcolor: (theme) => alpha(theme.palette.primary.main, 0.04),
+              borderRadius: 2,
+            }}
+          >
             <CardContent
-              sx={{ p: '12px !important', display: 'flex', alignItems: 'center', gap: 2 }}
+              sx={{ 
+                p: '12px !important', 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 1.5,
+              }}
             >
-              <Avatar src={user?.imageUrl} alt={user?.fullName ?? ''} sx={{ width: 36, height: 36 }} />
+              <Avatar 
+                src={user?.imageUrl} 
+                alt={user?.fullName ?? ''} 
+                sx={{ 
+                  width: 40, 
+                  height: 40,
+                  border: '2px solid',
+                  borderColor: 'background.paper',
+                  boxShadow: 1,
+                }} 
+              />
               <Box sx={{ flex: 1, minWidth: 0 }}>
-                <Typography variant="subtitle2" fontWeight="bold" noWrap>
+                <Typography 
+                  variant="subtitle2" 
+                  sx={{
+                    fontWeight: 600,
+                    color: 'text.primary',
+                    lineHeight: 1.3,
+                  }}
+                  noWrap
+                >
                   {user?.fullName ?? 'ユーザー'}
                 </Typography>
-                <Typography variant="caption" color="text.secondary" noWrap>
+                <Typography 
+                  variant="caption" 
+                  sx={{
+                    color: 'text.secondary',
+                    display: 'block',
+                    lineHeight: 1.3,
+                  }}
+                  noWrap
+                >
                   {user?.primaryEmailAddress?.emailAddress}
                 </Typography>
               </Box>
-              <IconButton size="small" onClick={() => signOut()}>
-                <LogOut size={16} />
-              </IconButton>
+              <Tooltip title="ログアウト">
+                <IconButton 
+                  size="small" 
+                  onClick={() => signOut()}
+                  sx={{
+                    color: 'text.secondary',
+                    '&:hover': {
+                      color: 'error.main',
+                      bgcolor: (theme) => alpha(theme.palette.error.main, 0.08),
+                    },
+                  }}
+                >
+                  <LogOut size={16} />
+                </IconButton>
+              </Tooltip>
             </CardContent>
           </Card>
         ) : (
           <Tooltip title="ログアウト" placement="right">
-            <IconButton onClick={() => signOut()} sx={{ mx: 'auto', display: 'block' }}>
-              <Avatar src={user?.imageUrl} alt={user?.fullName ?? ''} sx={{ width: 36, height: 36 }} />
+            <IconButton 
+              onClick={() => signOut()} 
+              sx={{ 
+                mx: 'auto', 
+                display: 'block',
+                '&:hover': {
+                  bgcolor: (theme) => alpha(theme.palette.error.main, 0.08),
+                },
+              }}
+            >
+              <Avatar 
+                src={user?.imageUrl} 
+                alt={user?.fullName ?? ''} 
+                sx={{ 
+                  width: 36, 
+                  height: 36,
+                  border: '2px solid',
+                  borderColor: 'divider',
+                }} 
+              />
             </IconButton>
           </Tooltip>
         )}
@@ -265,7 +392,12 @@ export function Sidebar({ open = true, onClose, onToggle, variant = 'permanent' 
         ModalProps={{ keepMounted: true }}
         sx={{
           display: { xs: 'block', md: 'none' },
-          '& .MuiDrawer-paper': { boxSizing: 'border-box', width: SIDEBAR_WIDTH },
+          '& .MuiDrawer-paper': { 
+            boxSizing: 'border-box', 
+            width: SIDEBAR_WIDTH,
+            borderRight: '1px solid',
+            borderColor: 'divider',
+          },
         }}
       >
         {drawerContent}
@@ -281,8 +413,9 @@ export function Sidebar({ open = true, onClose, onToggle, variant = 'permanent' 
         '& .MuiDrawer-paper': {
           boxSizing: 'border-box',
           width: currentWidth,
-          borderRight: '1px solid #e2e8f0',
-          transition: 'width 0.2s ease-in-out',
+          borderRight: '1px solid',
+          borderColor: 'divider',
+          transition: 'width 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
           overflowX: 'hidden',
         },
       }}
