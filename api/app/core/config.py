@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     clerk_publishable_key: str = ""
     clerk_jwt_issuer: str = ""
 
-    cors_origins: list[str] = ["http://localhost:3000"]
+    cors_origins: list[str] = ["*"]
 
 
 @lru_cache
