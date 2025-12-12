@@ -9,7 +9,8 @@ export interface CurrentUser {
   clerk_id: string;
   name: string;
   email: string;
-  role: 'admin' | 'interviewer';
+  role: 'admin' | 'interviewer' | 'client';
+  company_id?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -31,8 +32,8 @@ export function useCurrentUser() {
     isLoading: !isLoaded || isLoading,
     isAdmin: data?.role === 'admin',
     isInterviewer: data?.role === 'interviewer',
+    isClient: data?.role === 'client',
     error,
     mutate,
   };
 }
-

@@ -4,19 +4,19 @@ from fastapi import APIRouter, HTTPException
 
 from app.application.dto.company import CompanyCreate, CompanyResponse, CompanyUpdate
 from app.application.services.company_service import CompanyService
-from app.core.deps import AdminUser, CurrentUser
+from app.core.deps import AdminUser, InternalUser
 
 router = APIRouter()
 
 
 @router.get("", response_model=list[CompanyResponse])
-async def list_companies(_: CurrentUser):
+async def list_companies(_: InternalUser):
     service = CompanyService()
     return await service.get_all()
 
 
 @router.get("/{company_id}", response_model=CompanyResponse)
-async def get_company(company_id: UUID, _: CurrentUser):
+async def get_company(company_id: UUID, _: InternalUser):
     service = CompanyService()
     company = await service.get_by_id(company_id)
     if not company:
@@ -46,4 +46,3 @@ async def delete_company(company_id: UUID, _: AdminUser):
     if not result:
         raise HTTPException(status_code=404, detail="Company not found")
     return {"message": "Company deleted"}
-

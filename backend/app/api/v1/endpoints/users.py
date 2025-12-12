@@ -35,6 +35,7 @@ async def create_user(data: UserCreate, _: AdminUser):
         name=data.name,
         email=data.email,
         role=data.role,
+        company_id=data.company_id,
         created_at=now,
         updated_at=now,
     )
@@ -58,4 +59,3 @@ async def update_user(user_id: UUID, data: UserUpdate, _: AdminUser):
 
     updated = await repo.update(user)
     return UserResponse.model_validate(updated.model_dump())
-

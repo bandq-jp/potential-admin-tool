@@ -3,6 +3,7 @@ from fastapi import APIRouter
 from app.api.v1.endpoints import (
     agents,
     candidates,
+    client,
     companies,
     criteria,
     export,
@@ -25,4 +26,4 @@ api_router.include_router(candidates.router, prefix="/candidates", tags=["candid
 api_router.include_router(interviews.router, prefix="/interviews", tags=["interviews"])
 api_router.include_router(reports.router, prefix="/reports", tags=["reports"])
 api_router.include_router(export.router, prefix="/export", tags=["export"])
-
+api_router.include_router(client.router, prefix="/client", tags=["client"])

@@ -11,11 +11,13 @@ class UserCreate(BaseModel):
     name: str
     email: EmailStr
     role: UserRole = UserRole.INTERVIEWER
+    company_id: UUID | None = None
 
 
 class UserUpdate(BaseModel):
     name: str | None = None
     role: UserRole | None = None
+    company_id: UUID | None = None
 
 
 class UserResponse(BaseModel):
@@ -24,6 +26,6 @@ class UserResponse(BaseModel):
     name: str
     email: EmailStr
     role: UserRole
+    company_id: UUID | None = None
     created_at: datetime
     updated_at: datetime
-

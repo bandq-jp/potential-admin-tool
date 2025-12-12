@@ -6,4 +6,8 @@ export { candidatesApi } from './candidates';
 export { interviewsApi } from './interviews';
 export { reportsApi } from './reports';
 export { usersApi } from './users';
-
+export { clientCandidatesApi } from './clientCandidates';
+export { clientInterviewsApi } from './clientInterviews';
+export { clientCriteriaApi } from './clientCriteria';
+export { clientJobPositionsApi } from './clientJobPositions';
+export { clientMeApi } from './clientMe';

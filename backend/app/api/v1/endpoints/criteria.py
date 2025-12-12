@@ -12,19 +12,19 @@ from app.application.dto.criteria import (
     CriteriaItemUpdate,
 )
 from app.application.services.criteria_service import CriteriaService
-from app.core.deps import AdminUser, CurrentUser
+from app.core.deps import AdminUser, InternalUser
 
 router = APIRouter()
 
 
 @router.get("/groups", response_model=list[CriteriaGroupResponse])
-async def list_criteria_groups(job_position_id: UUID, _: CurrentUser):
+async def list_criteria_groups(job_position_id: UUID, _: InternalUser):
     service = CriteriaService()
     return await service.get_groups_by_position(job_position_id)
 
 
 @router.get("/groups/with-items", response_model=list[CriteriaGroupWithItems])
-async def list_criteria_groups_with_items(job_position_id: UUID, _: CurrentUser):
+async def list_criteria_groups_with_items(job_position_id: UUID, _: InternalUser):
     service = CriteriaService()
     return await service.get_groups_with_items(job_position_id)
 
@@ -54,7 +54,7 @@ async def delete_criteria_group(group_id: UUID, _: AdminUser):
 
 
 @router.get("/items", response_model=list[CriteriaItemResponse])
-async def list_criteria_items(criteria_group_id: UUID, _: CurrentUser):
+async def list_criteria_items(criteria_group_id: UUID, _: InternalUser):
     service = CriteriaService()
     return await service.get_items_by_group(criteria_group_id)
 
@@ -72,4 +72,3 @@ async def update_criteria_item(item_id: UUID, data: CriteriaItemUpdate, _: Admin
     if not item:
         raise HTTPException(status_code=404, detail="Criteria item not found")
     return item
-

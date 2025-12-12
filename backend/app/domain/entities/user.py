@@ -9,6 +9,7 @@ from pydantic import BaseModel, EmailStr
 class UserRole(str, Enum):
     ADMIN = "admin"
     INTERVIEWER = "interviewer"
+    CLIENT = "client"
 
 
 class User(BaseModel):
@@ -17,6 +18,7 @@ class User(BaseModel):
     name: str
     email: EmailStr
     role: UserRole
+    company_id: Optional[UUID] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
@@ -26,3 +28,4 @@ class UserCreate(BaseModel):
     name: str
     email: EmailStr
     role: UserRole = UserRole.INTERVIEWER
+    company_id: Optional[UUID] = None

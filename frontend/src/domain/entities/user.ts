@@ -1,4 +1,4 @@
-export type UserRole = 'admin' | 'interviewer';
+export type UserRole = 'admin' | 'interviewer' | 'client';
 
 export interface User {
   id: string;
@@ -6,6 +6,7 @@ export interface User {
   name: string;
   email: string;
   role: UserRole;
+  company_id?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -13,4 +14,5 @@ export interface User {
 export interface UserUpdate {
   name?: string;
   role?: UserRole;
+  company_id?: string | null;
 }

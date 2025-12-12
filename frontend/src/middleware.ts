@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server';
 const ALLOWED_EMAIL_DOMAIN = '@bandq.jp';
 
 const isPublicRoute = createRouteMatcher(['/sign-in(.*)', '/sign-up(.*)', '/unauthorized(.*)']);
+const isClientRoute = createRouteMatcher(['/client(.*)']);
 
 export default clerkMiddleware(async (auth, request) => {
   if (isPublicRoute(request)) {
@@ -13,6 +14,11 @@ export default clerkMiddleware(async (auth, request) => {
   const { userId } = await auth.protect();
 
   if (!userId) {
+    return NextResponse.next();
+  }
+
+  // Client portal allows external domains; only require login.
+  if (isClientRoute(request)) {
     return NextResponse.next();
   }
 
@@ -42,4 +48,3 @@ export const config = {
     '/(api|trpc)(.*)',
   ],
 };
-
