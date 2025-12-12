@@ -17,7 +17,7 @@ import {
   Alert,
 } from '@mui/material';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
-import { Plus, Edit, Trash2, Shield } from 'lucide-react';
+import { Plus, Edit, Trash2, Shield, UserPlus } from 'lucide-react';
 import { useCompanies } from '@/hooks/useCompanies';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useSnackbar } from '@/components/providers/SnackbarProvider';
@@ -25,7 +25,7 @@ import { ApiError } from '@/lib/api';
 import type { Company, CompanyCreate } from '@/domain/entities/company';
 
 export default function CompaniesPage() {
-  const { companies, isLoading, createCompany, updateCompany, deleteCompany } = useCompanies();
+  const { companies, isLoading, createCompany, updateCompany, deleteCompany, inviteClientUser } = useCompanies();
   const { isAdmin, isLoading: userLoading } = useCurrentUser();
   const { showSuccess, showError } = useSnackbar();
 
@@ -33,6 +33,11 @@ export default function CompaniesPage() {
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
   const [formData, setFormData] = useState<CompanyCreate>({ name: '', note: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+  const [invitingCompany, setInvitingCompany] = useState<Company | null>(null);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [isInviting, setIsInviting] = useState(false);
 
   const handleOpenCreate = () => {
     if (!isAdmin) {
@@ -57,6 +62,44 @@ export default function CompaniesPage() {
   const handleClose = () => {
     setDialogOpen(false);
     setEditingCompany(null);
+  };
+
+  const handleOpenInvite = (company: Company) => {
+    if (!isAdmin) {
+      showError('管理者権限が必要です');
+      return;
+    }
+    setInvitingCompany(company);
+    setInviteEmail('');
+    setInviteDialogOpen(true);
+  };
+
+  const handleCloseInvite = () => {
+    setInviteDialogOpen(false);
+    setInvitingCompany(null);
+    setInviteEmail('');
+  };
+
+  const handleSendInvite = async () => {
+    if (!invitingCompany) return;
+    setIsInviting(true);
+    try {
+      await inviteClientUser(invitingCompany.id, inviteEmail);
+      showSuccess('招待メールを送信しました');
+      handleCloseInvite();
+    } catch (error) {
+      if (error instanceof ApiError) {
+        if (error.status === 403) {
+          showError('管理者権限が必要です');
+        } else {
+          showError(error.message);
+        }
+      } else {
+        showError('エラーが発生しました');
+      }
+    } finally {
+      setIsInviting(false);
+    }
   };
 
   const handleSubmit = async () => {
@@ -120,10 +163,21 @@ export default function CompaniesPage() {
     {
       field: 'actions',
       headerName: 'アクション',
-      width: 120,
+      width: 160,
       sortable: false,
       renderCell: (params) => (
         <Box>
+          <Tooltip title={isAdmin ? '招待' : '管理者権限が必要'}>
+            <span>
+              <IconButton
+                size="small"
+                onClick={() => handleOpenInvite(params.row)}
+                disabled={!isAdmin}
+              >
+                <UserPlus size={16} />
+              </IconButton>
+            </span>
+          </Tooltip>
           <Tooltip title={isAdmin ? '編集' : '管理者権限が必要'}>
             <span>
               <IconButton
@@ -233,6 +287,37 @@ export default function CompaniesPage() {
             disableElevation
           >
             {isSubmitting ? '処理中...' : (editingCompany ? '更新' : '登録')}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={inviteDialogOpen} onClose={handleCloseInvite} maxWidth="sm" fullWidth>
+        <DialogTitle>企業ユーザーを招待</DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Alert severity="info">
+              {invitingCompany?.name} の閲覧専用アカウント（/client）を招待します
+            </Alert>
+            <TextField
+              label="招待メールアドレス"
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+              fullWidth
+              required
+              placeholder="example@client.co.jp"
+              type="email"
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseInvite} disabled={isInviting}>キャンセル</Button>
+          <Button
+            variant="contained"
+            onClick={handleSendInvite}
+            disabled={!inviteEmail || isInviting}
+            disableElevation
+          >
+            {isInviting ? '送信中...' : '招待を送信'}
           </Button>
         </DialogActions>
       </Dialog>

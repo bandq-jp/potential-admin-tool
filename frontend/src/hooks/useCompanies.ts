@@ -40,6 +40,12 @@ export function useCompanies() {
     mutate();
   };
 
+  const inviteClientUser = async (companyId: string, email: string) => {
+    const token = await getToken();
+    if (!token) throw new Error('No token');
+    return companiesApi.inviteClientUser(companyId, email, token);
+  };
+
   return {
     companies: data ?? [],
     isLoading,
@@ -47,7 +53,7 @@ export function useCompanies() {
     createCompany,
     updateCompany,
     deleteCompany,
+    inviteClientUser,
     mutate,
   };
 }
-

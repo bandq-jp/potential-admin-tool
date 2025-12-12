@@ -43,6 +43,21 @@ def extract_client_claims(payload: dict) -> Tuple[Optional[str], Optional[str]]:
     return role, company_id
 
 
+def extract_client_claims_from_clerk_user(clerk_user: dict) -> Tuple[Optional[str], Optional[str]]:
+    public_metadata = clerk_user.get("public_metadata") or clerk_user.get("publicMetadata") or {}
+    if isinstance(public_metadata, str):
+        try:
+            public_metadata = json.loads(public_metadata)
+        except Exception:
+            public_metadata = {}
+    if not isinstance(public_metadata, dict):
+        public_metadata = {}
+
+    role = public_metadata.get("role")
+    company_id = public_metadata.get("company_id")
+    return role, company_id
+
+
 async def get_clerk_jwks(issuer: str) -> dict:
     global _jwks_cache
     if _jwks_cache is not None:
@@ -174,10 +189,13 @@ async def get_current_user(
         # External users must be explicitly marked as client with company_id claims
         if not is_internal:
             role_claim, company_claim = extract_client_claims(payload)
+            if not role_claim or not company_claim:
+                role_claim, company_claim = extract_client_claims_from_clerk_user(clerk_user)
+
             if role_claim != UserRole.CLIENT.value or not company_claim:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Access denied. External users require client role and company_id claims.",
+                    detail="Access denied. External users must be provisioned as client with company_id.",
                 )
             try:
                 company_uuid = UUID(str(company_claim))
