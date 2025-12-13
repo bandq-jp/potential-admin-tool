@@ -15,13 +15,13 @@ from app.application.dto.interview import (
 )
 from app.application.services.candidate_service import CandidateService
 from app.application.services.interview_service import InterviewService
-from app.core.deps import CurrentUser
+from app.core.deps import InternalUser
 from app.domain.entities.user import UserRole
 
 router = APIRouter()
 
 
-async def check_candidate_access(candidate_id: UUID, current_user: CurrentUser):
+async def check_candidate_access(candidate_id: UUID, current_user: InternalUser):
     service = CandidateService()
     candidate = await service.get_by_id(candidate_id)
     if not candidate:
@@ -32,13 +32,13 @@ async def check_candidate_access(candidate_id: UUID, current_user: CurrentUser):
 
 
 @router.get("/by-candidate/{candidate_id}", response_model=InterviewWithDetails | None)
-async def get_interview_by_candidate(candidate_id: UUID, _: CurrentUser):
+async def get_interview_by_candidate(candidate_id: UUID, _: InternalUser):
     service = InterviewService()
     return await service.get_by_candidate_id(candidate_id)
 
 
 @router.get("/{interview_id}", response_model=InterviewWithDetails)
-async def get_interview(interview_id: UUID, _: CurrentUser):
+async def get_interview(interview_id: UUID, _: InternalUser):
     service = InterviewService()
     interview = await service.get_by_id(interview_id)
     if not interview:
@@ -47,14 +47,14 @@ async def get_interview(interview_id: UUID, _: CurrentUser):
 
 
 @router.post("", response_model=InterviewResponse)
-async def create_interview(data: InterviewCreate, current_user: CurrentUser):
+async def create_interview(data: InterviewCreate, current_user: InternalUser):
     await check_candidate_access(data.candidate_id, current_user)
     service = InterviewService()
     return await service.create(data)
 
 
 @router.patch("/{interview_id}", response_model=InterviewResponse)
-async def update_interview(interview_id: UUID, data: InterviewUpdate, current_user: CurrentUser):
+async def update_interview(interview_id: UUID, data: InterviewUpdate, current_user: InternalUser):
     service = InterviewService()
     interview = await service.get_by_id(interview_id)
     if not interview:
@@ -69,7 +69,7 @@ async def update_interview(interview_id: UUID, data: InterviewUpdate, current_us
 async def save_interview_details(
     interview_id: UUID,
     details: list[InterviewDetailCreate],
-    current_user: CurrentUser,
+    current_user: InternalUser,
 ):
     service = InterviewService()
     interview = await service.get_by_id(interview_id)
@@ -84,7 +84,7 @@ async def save_interview_details(
 async def add_question_response(
     interview_id: UUID,
     data: InterviewQuestionResponseCreate,
-    current_user: CurrentUser,
+    current_user: InternalUser,
 ):
     service = InterviewService()
     interview = await service.get_by_id(interview_id)
@@ -99,7 +99,7 @@ async def add_question_response(
 async def update_question_response(
     question_id: UUID,
     data: InterviewQuestionResponseUpdate,
-    _: CurrentUser,
+    _: InternalUser,
 ):
     service = InterviewService()
     updated = await service.update_question_response(question_id, data)
@@ -109,10 +109,9 @@ async def update_question_response(
 
 
 @router.delete("/questions/{question_id}")
-async def delete_question_response(question_id: UUID, _: CurrentUser):
+async def delete_question_response(question_id: UUID, _: InternalUser):
     service = InterviewService()
     result = await service.delete_question_response(question_id)
     if not result:
         raise HTTPException(status_code=404, detail="Question response not found")
     return {"message": "Question response deleted"}
-

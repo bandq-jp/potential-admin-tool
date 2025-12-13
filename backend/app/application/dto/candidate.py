@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from app.domain.entities.candidate import FinalStageResult, HireStatus, StageResult
 
@@ -64,6 +64,32 @@ class CandidateWithRelations(CandidateResponse):
     owner_user_name: str | None = None
 
 
+# Client-facing (external) DTOs
+class ClientCandidateResponse(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    id: UUID
+    company_id: UUID
+    job_position_id: UUID
+    name: str
+    resume_url: str | None
+    stage_0_5_result: StageResult
+    stage_first_result: StageResult
+    stage_second_result: StageResult
+    stage_final_result: FinalStageResult
+    hire_status: HireStatus
+    stage_0_5_date: date | None
+    stage_first_date: date | None
+    stage_final_decision_date: date | None
+    created_at: datetime
+    updated_at: datetime
+
+
+class ClientCandidateWithRelations(ClientCandidateResponse):
+    company_name: str | None = None
+    job_position_name: str | None = None
+
+
 class CandidateFilter(BaseModel):
     company_id: UUID | None = None
     job_position_id: UUID | None = None
@@ -106,4 +132,3 @@ class DashboardStats(BaseModel):
     previous_month: MonthlyStats
     active_trend_percent: float | None
     hired_trend_percent: float | None
-

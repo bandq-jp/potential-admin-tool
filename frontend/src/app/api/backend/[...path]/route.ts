@@ -48,7 +48,7 @@ async function handleRequest(request: NextRequest, params: { path: string[] }, m
   const targetUrl = `${base.replace(/\/$/, '')}/${path}${search ? `?${search}` : ''}`;
 
   // 3) リクエストボディ
-  let data: any = undefined;
+  let data: unknown = undefined;
   if (['POST', 'PUT', 'PATCH'].includes(method)) {
     const text = await request.text();
     if (text) {

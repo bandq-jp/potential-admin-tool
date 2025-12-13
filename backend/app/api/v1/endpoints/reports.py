@@ -3,13 +3,13 @@ from uuid import UUID
 from fastapi import APIRouter, HTTPException
 
 from app.application.services.report_service import ReportService
-from app.core.deps import CurrentUser
+from app.core.deps import InternalUser
 
 router = APIRouter()
 
 
 @router.get("/client/{interview_id}")
-async def generate_client_report(interview_id: UUID, _: CurrentUser):
+async def generate_client_report(interview_id: UUID, _: InternalUser):
     service = ReportService()
     markdown = await service.generate_client_report(interview_id)
     if not markdown:
@@ -18,10 +18,9 @@ async def generate_client_report(interview_id: UUID, _: CurrentUser):
 
 
 @router.get("/agent/{interview_id}")
-async def generate_agent_report(interview_id: UUID, _: CurrentUser):
+async def generate_agent_report(interview_id: UUID, _: InternalUser):
     service = ReportService()
     markdown = await service.generate_agent_report(interview_id)
     if not markdown:
         raise HTTPException(status_code=404, detail="Interview not found")
     return {"markdown": markdown}
-

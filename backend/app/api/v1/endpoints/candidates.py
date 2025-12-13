@@ -11,7 +11,7 @@ from app.application.dto.candidate import (
     FunnelStats,
 )
 from app.application.services.candidate_service import CandidateService
-from app.core.deps import CurrentUser
+from app.core.deps import InternalUser
 from app.domain.entities.user import UserRole
 
 router = APIRouter()
@@ -23,7 +23,7 @@ async def list_candidates(
     job_position_id: UUID | None = None,
     agent_id: UUID | None = None,
     owner_user_id: UUID | None = None,
-    _: CurrentUser = None,
+    _: InternalUser = None,
 ):
     service = CandidateService()
     return await service.get_all(
@@ -35,19 +35,19 @@ async def list_candidates(
 
 
 @router.get("/funnel", response_model=FunnelStats)
-async def get_funnel_stats(company_id: UUID | None = None, _: CurrentUser = None):
+async def get_funnel_stats(company_id: UUID | None = None, _: InternalUser = None):
     service = CandidateService()
     return await service.get_funnel_stats(company_id)
 
 
 @router.get("/dashboard-stats", response_model=DashboardStats)
-async def get_dashboard_stats(_: CurrentUser = None):
+async def get_dashboard_stats(_: InternalUser = None):
     service = CandidateService()
     return await service.get_dashboard_stats()
 
 
 @router.get("/{candidate_id}", response_model=CandidateWithRelations)
-async def get_candidate(candidate_id: UUID, _: CurrentUser):
+async def get_candidate(candidate_id: UUID, _: InternalUser):
     service = CandidateService()
     candidate = await service.get_by_id(candidate_id)
     if not candidate:
@@ -56,13 +56,13 @@ async def get_candidate(candidate_id: UUID, _: CurrentUser):
 
 
 @router.post("", response_model=CandidateResponse)
-async def create_candidate(data: CandidateCreate, current_user: CurrentUser):
+async def create_candidate(data: CandidateCreate, current_user: InternalUser):
     service = CandidateService()
     return await service.create(data)
 
 
 @router.patch("/{candidate_id}", response_model=CandidateResponse)
-async def update_candidate(candidate_id: UUID, data: CandidateUpdate, current_user: CurrentUser):
+async def update_candidate(candidate_id: UUID, data: CandidateUpdate, current_user: InternalUser):
     service = CandidateService()
     candidate = await service.get_by_id(candidate_id)
     if not candidate:
@@ -76,7 +76,7 @@ async def update_candidate(candidate_id: UUID, data: CandidateUpdate, current_us
 
 
 @router.delete("/{candidate_id}")
-async def delete_candidate(candidate_id: UUID, current_user: CurrentUser):
+async def delete_candidate(candidate_id: UUID, current_user: InternalUser):
     service = CandidateService()
     candidate = await service.get_by_id(candidate_id)
     if not candidate:
@@ -89,4 +89,3 @@ async def delete_candidate(candidate_id: UUID, current_user: CurrentUser):
     if not result:
         raise HTTPException(status_code=404, detail="Candidate not found")
     return {"message": "Candidate deleted"}
-

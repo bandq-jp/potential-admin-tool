@@ -4,25 +4,25 @@ from fastapi import APIRouter, HTTPException
 
 from app.application.dto.agent import AgentCreate, AgentResponse, AgentStats, AgentUpdate
 from app.application.services.agent_service import AgentService
-from app.core.deps import AdminUser, CurrentUser
+from app.core.deps import AdminUser, InternalUser
 
 router = APIRouter()
 
 
 @router.get("", response_model=list[AgentResponse])
-async def list_agents(_: CurrentUser):
+async def list_agents(_: InternalUser):
     service = AgentService()
     return await service.get_all()
 
 
 @router.get("/stats", response_model=list[AgentStats])
-async def get_agent_stats(_: CurrentUser):
+async def get_agent_stats(_: InternalUser):
     service = AgentService()
     return await service.get_stats()
 
 
 @router.get("/{agent_id}", response_model=AgentResponse)
-async def get_agent(agent_id: UUID, _: CurrentUser):
+async def get_agent(agent_id: UUID, _: InternalUser):
     service = AgentService()
     agent = await service.get_by_id(agent_id)
     if not agent:
@@ -52,4 +52,3 @@ async def delete_agent(agent_id: UUID, _: AdminUser):
     if not result:
         raise HTTPException(status_code=404, detail="Agent not found")
     return {"message": "Agent deleted"}
-

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { Box, Typography, Button, Grid } from '@mui/material';
 import { Plus, Users, FileText, CheckCircle2, AlertTriangle } from 'lucide-react';
@@ -16,11 +16,7 @@ export default function DashboardPage() {
   const { stats: funnelStats } = useFunnelStats();
   const { stats: agentStats } = useAgentStats();
   const { stats: dashboardStats } = useDashboardStats();
-  const [lastUpdated, setLastUpdated] = useState<string>('');
-
-  useEffect(() => {
-    setLastUpdated(new Date().toLocaleString('ja-JP'));
-  }, []);
+  const [lastUpdated] = useState(() => new Date().toLocaleString('ja-JP'));
 
   const activeCandidatesCount = dashboardStats?.active_candidates ?? 0;
   const mismatchCount = dashboardStats?.mismatch_count ?? 0;

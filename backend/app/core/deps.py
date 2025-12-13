@@ -1,5 +1,6 @@
-from typing import Annotated, Optional
-from uuid import uuid4
+from typing import Annotated, Optional, Tuple
+from uuid import UUID, uuid4
+import json
 
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -8,6 +9,7 @@ import httpx
 
 from app.core.config import Settings, get_settings
 from app.domain.entities.user import User, UserRole, UserCreate
+from app.infrastructure.repositories.company_repository import CompanyRepository
 from app.infrastructure.repositories.user_repository import UserRepository
 
 security = HTTPBearer(auto_error=False)
@@ -19,6 +21,42 @@ ALLOWED_EMAIL_DOMAIN = "@bandq.jp"
 
 def is_allowed_email_domain(email: str) -> bool:
     return email.lower().endswith(ALLOWED_EMAIL_DOMAIN)
+
+
+def extract_client_claims(payload: dict) -> Tuple[Optional[str], Optional[str]]:
+    """
+    Extract client role/company claims from Clerk JWT.
+    Supports either root-level claims or nested public_metadata.
+    """
+    role = payload.get("role") or payload.get("user_role")
+    company_id = payload.get("company_id")
+
+    public_metadata = payload.get("public_metadata") or payload.get("publicMetadata") or payload.get("metadata")
+    if isinstance(public_metadata, str):
+        try:
+            public_metadata = json.loads(public_metadata)
+        except Exception:
+            public_metadata = {}
+    if isinstance(public_metadata, dict):
+        role = role or public_metadata.get("role")
+        company_id = company_id or public_metadata.get("company_id")
+
+    return role, company_id
+
+
+def extract_client_claims_from_clerk_user(clerk_user: dict) -> Tuple[Optional[str], Optional[str]]:
+    public_metadata = clerk_user.get("public_metadata") or clerk_user.get("publicMetadata") or {}
+    if isinstance(public_metadata, str):
+        try:
+            public_metadata = json.loads(public_metadata)
+        except Exception:
+            public_metadata = {}
+    if not isinstance(public_metadata, dict):
+        public_metadata = {}
+
+    role = public_metadata.get("role")
+    company_id = public_metadata.get("company_id")
+    return role, company_id
 
 
 async def get_clerk_jwks(issuer: str) -> dict:
@@ -146,25 +184,57 @@ async def get_current_user(
         
         if email is None:
             email = f"{clerk_user_id}@clerk.local"
-        
-        if not is_allowed_email_domain(email):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Access denied. Only {ALLOWED_EMAIL_DOMAIN} domain is allowed.",
-            )
+
+        is_internal = is_allowed_email_domain(email)
+
+        # External users must be explicitly marked as client with company_id claims
+        if not is_internal:
+            role_claim, company_claim = extract_client_claims(payload)
+            if not role_claim or not company_claim:
+                role_claim, company_claim = extract_client_claims_from_clerk_user(clerk_user)
+
+            if role_claim != UserRole.CLIENT.value or not company_claim:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Access denied. External users must be provisioned as client with company_id.",
+                )
+            try:
+                company_uuid = UUID(str(company_claim))
+            except Exception:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Invalid company_id claim.",
+                )
+        else:
+            company_uuid = None
         
         first_name = clerk_user.get("first_name", "") or ""
         last_name = clerk_user.get("last_name", "") or ""
         name = f"{first_name} {last_name}".strip() or "ユーザー"
 
+        # Client users use the company name as display name.
+        if not is_internal and company_uuid is not None:
+            company_repo = CompanyRepository()
+            company = await company_repo.find_by_id(company_uuid)
+            if not company:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Company not found for company_id claim.",
+                )
+            name = company.name
+
         all_users = await user_repo.find_all()
-        role = UserRole.ADMIN if len(all_users) == 0 else UserRole.INTERVIEWER
+        if is_internal:
+            role = UserRole.ADMIN if len(all_users) == 0 else UserRole.INTERVIEWER
+        else:
+            role = UserRole.CLIENT
 
         new_user = UserCreate(
             clerk_id=clerk_user_id,
             email=email,
             name=name,
             role=role,
+            company_id=company_uuid,
         )
         
         try:
@@ -177,11 +247,24 @@ async def get_current_user(
                     detail=f"Failed to create user: {str(e)}",
                 )
     else:
-        if not is_allowed_email_domain(user.email):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Access denied. Only {ALLOWED_EMAIL_DOMAIN} domain is allowed.",
-            )
+        if user.role in (UserRole.ADMIN, UserRole.INTERVIEWER):
+            if not is_allowed_email_domain(user.email):
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail=f"Access denied. Only {ALLOWED_EMAIL_DOMAIN} domain is allowed.",
+                )
+        elif user.role == UserRole.CLIENT:
+            if user.company_id is None:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Client user is not associated with a company.",
+                )
+            # Keep client display name in sync with the company name.
+            company_repo = CompanyRepository()
+            company = await company_repo.find_by_id(user.company_id)
+            if company and user.name != company.name:
+                user.name = company.name
+                await user_repo.update(user)
 
     return user
 
@@ -197,5 +280,17 @@ async def require_admin(
     return current_user
 
 
+async def require_internal(
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> User:
+    if current_user.role == UserRole.CLIENT:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Internal access required",
+        )
+    return current_user
+
+
 CurrentUser = Annotated[User, Depends(get_current_user)]
 AdminUser = Annotated[User, Depends(require_admin)]
+InternalUser = Annotated[User, Depends(require_internal)]

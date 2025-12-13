@@ -17,10 +17,11 @@ class Settings(BaseSettings):
     clerk_publishable_key: str = ""
     clerk_jwt_issuer: str = ""
 
+    frontend_base_url: str = "http://localhost:3000"
+
     cors_origins: list[str] = ["http://localhost:3000"]
 
 
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
-

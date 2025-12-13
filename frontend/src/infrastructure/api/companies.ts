@@ -14,5 +14,7 @@ export const companiesApi = {
 
   delete: (id: string, token: string) =>
     api.delete<{ message: string }>(`/companies/${id}`, token),
-};
 
+  inviteClientUser: (companyId: string, email: string, token: string) =>
+    api.post(`/companies/${companyId}/invite`, { email }, token),
+};
