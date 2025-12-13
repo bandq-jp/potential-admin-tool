@@ -133,6 +133,9 @@ class ClientInterviewResponse(BaseModel):
     overall_comment_external: str | None
     will_text_external: str | None
     attract_text_external: str | None
+    transcript_raw_text: str | None
+    transcript_source: str | None
+    transcript_url: str | None
     client_report_markdown: str | None
     created_at: datetime
     updated_at: datetime

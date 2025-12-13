@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   Box,
   Typography,
@@ -13,9 +14,10 @@ import {
   Avatar,
   IconButton,
   Tooltip,
+  Button,
 } from '@mui/material';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
-import { Eye } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { useClientCandidates } from '@/hooks/useClientCandidates';
 import { useClientJobPositions } from '@/hooks/useClientJobPositions';
 import type { ClientCandidateWithRelations } from '@/domain/entities/clientCandidate';
@@ -36,6 +38,7 @@ const finalResultLabels: Record<FinalStageResult, { label: string; color: 'defau
 
 export default function ClientCandidatesPage() {
   const [positionFilter, setPositionFilter] = useState<string>('');
+  const router = useRouter();
   const { candidates, isLoading } = useClientCandidates({
     job_position_id: positionFilter || undefined,
   });
@@ -99,15 +102,20 @@ export default function ClientCandidatesPage() {
     },
     {
       field: 'actions',
-      headerName: '',
-      width: 80,
+      headerName: '詳細',
+      width: 130,
       sortable: false,
       renderCell: (params) => (
-        <Tooltip title="詳細">
-          <IconButton component={Link} href={`/client/candidates/${params.row.id}`} size="small">
-            <Eye size={16} />
-          </IconButton>
-        </Tooltip>
+        <Button
+          component={Link}
+          href={`/client/candidates/${params.row.id}`}
+          size="small"
+          variant="outlined"
+          endIcon={<ArrowRight size={16} />}
+          onClick={(e) => e.stopPropagation()}
+        >
+          詳細
+        </Button>
       ),
     },
   ];
@@ -144,14 +152,16 @@ export default function ClientCandidatesPage() {
         loading={isLoading}
         getRowId={(row) => row.id}
         autoHeight
+        disableRowSelectionOnClick
+        onRowClick={(params) => router.push(`/client/candidates/${params.id}`)}
         pageSizeOptions={[10, 25, 50]}
         initialState={{ pagination: { paginationModel: { pageSize: 25, page: 0 } } }}
         sx={{
           bgcolor: 'background.paper',
           '& .MuiDataGrid-columnHeaders': { bgcolor: '#f8fafc' },
+          '& .MuiDataGrid-row': { cursor: 'pointer' },
         }}
       />
     </Box>
   );
 }
-

@@ -104,8 +104,9 @@ async def get_client_interview_by_candidate(candidate_id: UUID, current_user: Cu
         if q.is_highlight
     ]
 
+    base = interview.model_dump(exclude={"details", "question_responses"})
     return ClientInterviewWithDetails(
-        **interview.model_dump(),
+        **base,
         details=details,
         question_responses=highlighted_qrs,
     )
@@ -130,4 +131,3 @@ async def get_client_report(interview_id: UUID, current_user: CurrentUser):
     if not markdown:
         raise HTTPException(status_code=404, detail="Interview not found")
     return {"markdown": markdown}
-

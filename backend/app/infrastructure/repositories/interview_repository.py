@@ -63,13 +63,38 @@ class InterviewDetailRepository:
         return [InterviewDetail(**row) for row in response.data]
 
     async def upsert(self, detail: InterviewDetail) -> InterviewDetail:
-        data = detail.model_dump(mode="json")
-        response = self.client.table(self.table).upsert(data).execute()
+        # Upsert by the composite unique key (interview_id, criteria_item_id).
+        # Avoid sending id/created_at/updated_at so existing rows keep their identity/timestamps.
+        data = {
+            "interview_id": str(detail.interview_id),
+            "criteria_item_id": str(detail.criteria_item_id),
+            "score_value": detail.score_value,
+            "comment_external": detail.comment_external,
+            "comment_internal": detail.comment_internal,
+        }
+        response = (
+            self.client.table(self.table)
+            .upsert(data, on_conflict="interview_id,criteria_item_id")
+            .execute()
+        )
         return InterviewDetail(**response.data[0])
 
     async def bulk_upsert(self, details: list[InterviewDetail]) -> list[InterviewDetail]:
-        data = [d.model_dump(mode="json") for d in details]
-        response = self.client.table(self.table).upsert(data).execute()
+        data = [
+            {
+                "interview_id": str(d.interview_id),
+                "criteria_item_id": str(d.criteria_item_id),
+                "score_value": d.score_value,
+                "comment_external": d.comment_external,
+                "comment_internal": d.comment_internal,
+            }
+            for d in details
+        ]
+        response = (
+            self.client.table(self.table)
+            .upsert(data, on_conflict="interview_id,criteria_item_id")
+            .execute()
+        )
         return [InterviewDetail(**row) for row in response.data]
 
 
@@ -103,4 +128,3 @@ class InterviewQuestionResponseRepository:
     async def delete(self, id: UUID) -> bool:
         response = self.client.table(self.table).delete().eq("id", str(id)).execute()
         return len(response.data) > 0
-

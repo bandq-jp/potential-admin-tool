@@ -1,6 +1,7 @@
 'use client';
 
 import useSWR from 'swr';
+import { useCallback } from 'react';
 import { useAuth } from '@clerk/nextjs';
 import { clientInterviewsApi } from '@/infrastructure/api';
 import type { ClientInterviewWithDetails } from '@/domain/entities/clientInterview';
@@ -17,11 +18,11 @@ export function useClientInterview(candidateId: string) {
     }
   );
 
-  const getClientReport = async (interviewId: string) => {
+  const getClientReport = useCallback(async (interviewId: string) => {
     const token = await getToken();
     if (!token) throw new Error('No token');
     return clientInterviewsApi.getClientReport(interviewId, token);
-  };
+  }, [getToken]);
 
   return {
     interview: data,
@@ -31,4 +32,3 @@ export function useClientInterview(candidateId: string) {
     getClientReport,
   };
 }
-

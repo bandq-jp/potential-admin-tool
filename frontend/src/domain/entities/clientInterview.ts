@@ -27,10 +27,12 @@ export interface ClientInterviewWithDetails {
   overall_comment_external: string | null;
   will_text_external: string | null;
   attract_text_external: string | null;
+  transcript_raw_text: string | null;
+  transcript_source: string | null;
+  transcript_url: string | null;
   client_report_markdown: string | null;
   created_at: string;
   updated_at: string;
   details: ClientInterviewDetail[];
   question_responses: ClientInterviewQuestionResponse[];
 }
-

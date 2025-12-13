@@ -5,16 +5,7 @@ export default async function Home() {
   const { userId } = await auth();
 
   if (userId) {
-    try {
-      const res = await fetch('/api/backend/users/me', { cache: 'no-store' });
-      const user = await res.json();
-      if (user?.role === 'client') {
-        redirect('/client');
-      }
-    } catch {
-      // fall through to dashboard
-    }
-    redirect('/dashboard');
+    redirect('/auth/redirect');
   } else {
     redirect('/sign-in');
   }

@@ -1,8 +1,9 @@
 'use client';
 
 import { useClerk } from '@clerk/nextjs';
+import Link from 'next/link';
 import { Box, Typography, Button, Card, CardContent } from '@mui/material';
-import { ShieldX, LogOut, Mail } from 'lucide-react';
+import { ShieldX, LogOut, Building2 } from 'lucide-react';
 
 export default function UnauthorizedPage() {
   const { signOut } = useClerk();
@@ -45,8 +46,7 @@ export default function UnauthorizedPage() {
           </Typography>
 
           <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-            このアプリケーションは <strong>@bandq.jp</strong> ドメインの
-            メールアドレスでログインしたユーザーのみ利用できます。
+            このページは社内向けです。企業ユーザーの方は企業ポータルをご利用ください。
           </Typography>
 
           <Box
@@ -60,14 +60,26 @@ export default function UnauthorizedPage() {
               gap: 1.5,
             }}
           >
-            <Mail size={20} color="#64748b" />
             <Typography variant="body2" color="text.secondary">
-              @bandq.jp のメールアドレスでサインインしてください
+              企業ポータル: 候補者・0.5次レポート（外向き）・評価軸の閲覧
             </Typography>
           </Box>
 
           <Button
+            component={Link}
+            href="/client"
             variant="contained"
+            size="large"
+            startIcon={<Building2 size={18} />}
+            disableElevation
+            fullWidth
+            sx={{ mb: 2 }}
+          >
+            企業ポータルへ
+          </Button>
+
+          <Button
+            variant="outlined"
             size="large"
             startIcon={<LogOut size={18} />}
             onClick={handleSignOut}
@@ -81,4 +93,3 @@ export default function UnauthorizedPage() {
     </Box>
   );
 }
-

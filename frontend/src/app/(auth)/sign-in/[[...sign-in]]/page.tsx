@@ -34,7 +34,7 @@ export default function SignInPage() {
           RecruitLog
         </Typography>
       </Box>
-      <SignIn afterSignInUrl="/client" signUpUrl="/sign-up" />
+      <SignIn afterSignInUrl="/auth/redirect" signUpUrl="/sign-up" />
     </Box>
   );
 }
