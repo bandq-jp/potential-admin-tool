@@ -38,7 +38,7 @@ async def get_client_me(current_user: CurrentUser):
     return {
         "company_id": company_id,
         "company_name": company.name if company else "-",
-        "user_name": current_user.name,
+        "user_name": company.name if company else current_user.name,
         "email": current_user.email,
     }
 

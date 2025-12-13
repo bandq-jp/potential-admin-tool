@@ -9,6 +9,7 @@ import httpx
 
 from app.core.config import Settings, get_settings
 from app.domain.entities.user import User, UserRole, UserCreate
+from app.infrastructure.repositories.company_repository import CompanyRepository
 from app.infrastructure.repositories.user_repository import UserRepository
 
 security = HTTPBearer(auto_error=False)
@@ -211,6 +212,17 @@ async def get_current_user(
         last_name = clerk_user.get("last_name", "") or ""
         name = f"{first_name} {last_name}".strip() or "ユーザー"
 
+        # Client users use the company name as display name.
+        if not is_internal and company_uuid is not None:
+            company_repo = CompanyRepository()
+            company = await company_repo.find_by_id(company_uuid)
+            if not company:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Company not found for company_id claim.",
+                )
+            name = company.name
+
         all_users = await user_repo.find_all()
         if is_internal:
             role = UserRole.ADMIN if len(all_users) == 0 else UserRole.INTERVIEWER
@@ -247,6 +259,12 @@ async def get_current_user(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="Client user is not associated with a company.",
                 )
+            # Keep client display name in sync with the company name.
+            company_repo = CompanyRepository()
+            company = await company_repo.find_by_id(user.company_id)
+            if company and user.name != company.name:
+                user.name = company.name
+                await user_repo.update(user)
 
     return user
 

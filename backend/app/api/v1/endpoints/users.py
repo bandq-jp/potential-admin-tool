@@ -5,6 +5,9 @@ from fastapi import APIRouter, HTTPException
 from app.application.dto.user import UserCreate, UserResponse, UserUpdate
 from app.core.deps import AdminUser, CurrentUser
 from app.domain.entities.user import User
+from app.core.deps import is_allowed_email_domain
+from app.domain.entities.user import UserRole
+from app.infrastructure.repositories.company_repository import CompanyRepository
 from app.infrastructure.repositories.user_repository import UserRepository
 
 router = APIRouter()
@@ -19,7 +22,19 @@ async def get_current_user_info(current_user: CurrentUser):
 async def list_users(_: AdminUser):
     repo = UserRepository()
     users = await repo.find_all()
-    return [UserResponse.model_validate(u.model_dump()) for u in users]
+    company_repo = CompanyRepository()
+    company_cache: dict[str, str] = {}
+
+    result: list[UserResponse] = []
+    for u in users:
+        if u.role == UserRole.CLIENT and u.company_id:
+            company_id = str(u.company_id)
+            if company_id not in company_cache:
+                company = await company_repo.find_by_id(u.company_id)
+                company_cache[company_id] = company.name if company else u.name
+            u.name = company_cache[company_id]
+        result.append(UserResponse.model_validate(u.model_dump()))
+    return result
 
 
 @router.post("", response_model=UserResponse)
@@ -56,6 +71,24 @@ async def update_user(user_id: UUID, data: UserUpdate, _: AdminUser):
     for key, value in update_data.items():
         setattr(user, key, value)
     user.updated_at = datetime.now(timezone.utc)
+
+    # Safeguards: internal roles must be @bandq.jp, client role must have company_id.
+    if user.role in (UserRole.ADMIN, UserRole.INTERVIEWER) and not is_allowed_email_domain(user.email):
+        raise HTTPException(
+            status_code=400,
+            detail="Only @bandq.jp users can be admin/interviewer.",
+        )
+    if user.role == UserRole.CLIENT and user.company_id is None:
+        raise HTTPException(
+            status_code=400,
+            detail="Client users must be associated with a company.",
+        )
+    if user.role == UserRole.CLIENT and user.company_id is not None:
+        company_repo = CompanyRepository()
+        company = await company_repo.find_by_id(user.company_id)
+        if not company:
+            raise HTTPException(status_code=400, detail="Company not found for client user.")
+        user.name = company.name
 
     updated = await repo.update(user)
     return UserResponse.model_validate(updated.model_dump())

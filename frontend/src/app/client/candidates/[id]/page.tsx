@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useEffect, useState } from 'react';
+import { use } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Box,
@@ -25,6 +25,7 @@ import {
   Skeleton,
 } from '@mui/material';
 import { ArrowLeft, Copy, ChevronDown, RefreshCcw } from 'lucide-react';
+import useSWR from 'swr';
 import { useClientCandidate } from '@/hooks/useClientCandidates';
 import { useClientInterview } from '@/hooks/useClientInterview';
 import { SCORE_LABELS } from '@/domain/entities/interview';
@@ -60,9 +61,29 @@ export default function ClientCandidateDetailPage({
     mutate: mutateInterview,
     getClientReport,
   } = useClientInterview(id);
-  const [reportMarkdown, setReportMarkdown] = useState<string>('');
-  const [reportStatus, setReportStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
-  const [reportReloadNonce, setReportReloadNonce] = useState(0);
+
+  const reportKey = interview?.id ? (['client-report', interview.id] as const) : null;
+  const {
+    data: reportData,
+    error: reportError,
+    isLoading: reportLoading,
+    mutate: mutateReport,
+  } = useSWR<{ markdown: string }>(
+    reportKey,
+    async (key: readonly [string, string]) => {
+      const [, interviewId] = key;
+      return getClientReport(interviewId);
+    }
+  );
+
+  const reportMarkdown = reportData?.markdown ?? '';
+  const reportStatus: 'idle' | 'loading' | 'success' | 'error' = !interview
+    ? 'idle'
+    : reportLoading
+      ? 'loading'
+      : reportError
+        ? 'error'
+        : 'success';
 
   const handleCopyReport = async () => {
     if (!interview) return;
@@ -75,35 +96,6 @@ export default function ClientCandidateDetailPage({
       showError('レポートの取得に失敗しました');
     }
   };
-
-  useEffect(() => {
-    const interviewId = interview?.id;
-    if (!interviewId) {
-      setReportMarkdown('');
-      setReportStatus('idle');
-      return;
-    }
-
-    let cancelled = false;
-    const load = async () => {
-      try {
-        setReportStatus('loading');
-        const result = await getClientReport(interviewId);
-        if (!cancelled) {
-          setReportMarkdown(result.markdown);
-          setReportStatus('success');
-        }
-      } catch (e) {
-        console.error(e);
-        if (!cancelled) setReportStatus('error');
-      }
-    };
-    load();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [interview?.id, getClientReport, reportReloadNonce]);
 
   if (isLoading || !candidate) {
     return (
@@ -400,7 +392,7 @@ export default function ClientCandidateDetailPage({
                               color="inherit"
                               size="small"
                               startIcon={<RefreshCcw size={16} />}
-                              onClick={() => setReportReloadNonce((n) => n + 1)}
+                              onClick={() => mutateReport()}
                             >
                               再取得
                             </Button>

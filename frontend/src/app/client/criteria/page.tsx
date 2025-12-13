@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   Box,
   Typography,
@@ -21,13 +21,12 @@ export default function ClientCriteriaPage() {
   const { jobPositions } = useClientJobPositions();
   const [selectedPositionId, setSelectedPositionId] = useState<string>('');
 
-  useEffect(() => {
-    if (!selectedPositionId && jobPositions.length > 0) {
-      setSelectedPositionId(jobPositions[0].id);
-    }
-  }, [jobPositions, selectedPositionId]);
+  const defaultPositionId = jobPositions[0]?.id ?? '';
+  const effectivePositionId = jobPositions.some((p) => p.id === selectedPositionId)
+    ? selectedPositionId
+    : defaultPositionId;
 
-  const { criteriaGroups, isLoading } = useClientCriteria(selectedPositionId);
+  const { criteriaGroups, isLoading } = useClientCriteria(effectivePositionId);
 
   return (
     <Box>
@@ -40,7 +39,7 @@ export default function ClientCriteriaPage() {
           <TextField
             select
             label="ポジション"
-            value={selectedPositionId}
+            value={effectivePositionId}
             onChange={(e) => setSelectedPositionId(e.target.value)}
             size="small"
             sx={{ minWidth: 280 }}
@@ -101,4 +100,3 @@ export default function ClientCriteriaPage() {
     </Box>
   );
 }
-

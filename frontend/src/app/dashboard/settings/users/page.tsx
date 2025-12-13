@@ -19,12 +19,21 @@ import {
   Alert,
 } from '@mui/material';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
-import { Edit, Shield, ShieldOff } from 'lucide-react';
+import { Building2, Edit, Shield, ShieldOff } from 'lucide-react';
 import { useUsers } from '@/hooks/useUsers';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useSnackbar } from '@/components/providers/SnackbarProvider';
 import { ApiError } from '@/lib/api';
 import type { User, UserUpdate, UserRole } from '@/domain/entities/user';
+
+const roleMeta: Record<
+  UserRole,
+  { label: string; color: 'default' | 'primary' | 'info'; icon: React.ReactElement }
+> = {
+  admin: { label: '管理者', color: 'primary', icon: <Shield size={14} /> },
+  interviewer: { label: '面接官', color: 'default', icon: <ShieldOff size={14} /> },
+  client: { label: 'クライアント', color: 'info', icon: <Building2 size={14} /> },
+};
 
 export default function UsersManagementPage() {
   const { users, isLoading, updateUser } = useUsers();
@@ -86,6 +95,11 @@ export default function UsersManagementPage() {
       return;
     }
 
+    if (user.role === 'client') {
+      showError('クライアントユーザーのロールは変更できません');
+      return;
+    }
+
     if (user.id === currentUser?.id) {
       showError('自分自身のロールは変更できません');
       return;
@@ -93,7 +107,7 @@ export default function UsersManagementPage() {
 
     try {
       await updateUser(user.id, { role: newRole });
-      showSuccess(`${user.name}のロールを${newRole === 'admin' ? '管理者' : '面接官'}に変更しました`);
+      showSuccess(`${user.name}のロールを${roleMeta[newRole].label}に変更しました`);
     } catch (error) {
       if (error instanceof ApiError) {
         if (error.status === 403) {
@@ -125,14 +139,17 @@ export default function UsersManagementPage() {
       field: 'role',
       headerName: 'ロール',
       width: 140,
-      renderCell: (params) => (
-        <Chip
-          label={params.value === 'admin' ? '管理者' : '面接官'}
-          color={params.value === 'admin' ? 'primary' : 'default'}
-          size="small"
-          icon={params.value === 'admin' ? <Shield size={14} /> : <ShieldOff size={14} />}
-        />
-      ),
+      renderCell: (params) => {
+        const meta = roleMeta[params.value as UserRole] ?? roleMeta.interviewer;
+        return (
+          <Chip
+            label={meta.label}
+            color={meta.color}
+            size="small"
+            icon={meta.icon}
+          />
+        );
+      },
     },
     {
       field: 'created_at',
@@ -148,10 +165,11 @@ export default function UsersManagementPage() {
       renderCell: (params) => {
         const isCurrentUser = params.row.id === currentUser?.id;
         const isUserAdmin = params.row.role === 'admin';
+        const isClientUser = params.row.role === 'client';
 
         return (
           <Box display="flex" alignItems="center" gap={1}>
-            {!isCurrentUser && (
+            {!isCurrentUser && !isClientUser && (
               <Tooltip
                 title={isUserAdmin ? '面接官に変更' : '管理者に変更'}
               >
@@ -221,6 +239,7 @@ export default function UsersManagementPage() {
         <ul style={{ margin: '8px 0 0', paddingLeft: 20 }}>
           <li><strong>管理者 (Admin):</strong> すべての機能へのフルアクセス（企業・エージェント・ポジション・定性要件の管理）</li>
           <li><strong>面接官 (Interviewer):</strong> 候補者・面談の閲覧・登録、自身が担当する候補者の編集</li>
+          <li><strong>クライアント (Client):</strong> 企業ポータル（/client）で候補者・0.5次レポート（外向き）・評価軸の閲覧</li>
         </ul>
       </Alert>
 
@@ -261,6 +280,12 @@ export default function UsersManagementPage() {
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               fullWidth
+              disabled={editingUser?.role === 'client'}
+              helperText={
+                editingUser?.role === 'client'
+                  ? 'クライアントユーザーの名前は会社名に固定されます'
+                  : ''
+              }
             />
             <TextField
               select
@@ -268,11 +293,13 @@ export default function UsersManagementPage() {
               value={formData.role}
               onChange={(e) => setFormData({ ...formData, role: e.target.value as UserRole })}
               fullWidth
-              disabled={editingUser?.id === currentUser?.id}
+              disabled={editingUser?.id === currentUser?.id || editingUser?.role === 'client'}
               helperText={
                 editingUser?.id === currentUser?.id
                   ? '自分自身のロールは変更できません'
-                  : ''
+                  : editingUser?.role === 'client'
+                    ? 'クライアントユーザーのロールは招待で管理されます'
+                    : ''
               }
             >
               <MenuItem value="admin">
@@ -285,6 +312,12 @@ export default function UsersManagementPage() {
                 <Box display="flex" alignItems="center" gap={1}>
                   <ShieldOff size={16} />
                   面接官 (Interviewer)
+                </Box>
+              </MenuItem>
+              <MenuItem value="client" disabled>
+                <Box display="flex" alignItems="center" gap={1}>
+                  <Building2 size={16} />
+                  クライアント (Client)
                 </Box>
               </MenuItem>
             </TextField>
@@ -307,4 +340,3 @@ export default function UsersManagementPage() {
     </Box>
   );
 }
-
