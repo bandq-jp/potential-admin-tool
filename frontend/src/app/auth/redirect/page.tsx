@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { Suspense, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useClerk, useAuth as useClerkAuth } from '@clerk/nextjs';
 import {
@@ -21,7 +21,7 @@ function isAllowedReturnTo(path: string, isClient: boolean) {
   return path.startsWith('/dashboard');
 }
 
-export default function AuthRedirectPage() {
+function AuthRedirectInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { isLoaded, isSignedIn } = useClerkAuth();
@@ -112,3 +112,30 @@ export default function AuthRedirectPage() {
   );
 }
 
+export default function AuthRedirectPage() {
+  return (
+    <Suspense
+      fallback={
+        <Box
+          sx={{
+            minHeight: '100vh',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            bgcolor: '#f8fafc',
+            p: 3,
+          }}
+        >
+          <Box sx={{ textAlign: 'center' }}>
+            <CircularProgress />
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+              画面を準備しています...
+            </Typography>
+          </Box>
+        </Box>
+      }
+    >
+      <AuthRedirectInner />
+    </Suspense>
+  );
+}
