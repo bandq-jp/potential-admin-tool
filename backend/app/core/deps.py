@@ -184,6 +184,7 @@ async def get_current_user(
         
         if email is None:
             email = f"{clerk_user_id}@clerk.local"
+        email = email.lower()
 
         is_internal = is_allowed_email_domain(email)
 
@@ -193,11 +194,17 @@ async def get_current_user(
             if not role_claim or not company_claim:
                 role_claim, company_claim = extract_client_claims_from_clerk_user(clerk_user)
 
+            # Fallback: invite-only users can be linked by email (pre-provisioned in Supabase on invite).
             if role_claim != UserRole.CLIENT.value or not company_claim:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Access denied. External users must be provisioned as client with company_id.",
-                )
+                existing_by_email = await user_repo.find_by_email(email)
+                if existing_by_email and existing_by_email.role == UserRole.CLIENT and existing_by_email.company_id:
+                    role_claim = UserRole.CLIENT.value
+                    company_claim = str(existing_by_email.company_id)
+                else:
+                    raise HTTPException(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        detail="Access denied. External users must be invited as client users.",
+                    )
             try:
                 company_uuid = UUID(str(company_claim))
             except Exception:

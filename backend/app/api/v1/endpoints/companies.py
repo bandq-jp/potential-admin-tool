@@ -1,4 +1,4 @@
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, HTTPException
 import httpx
@@ -8,6 +8,8 @@ from app.application.dto.company import CompanyCreate, CompanyResponse, CompanyU
 from app.application.services.company_service import CompanyService
 from app.core.deps import AdminUser, InternalUser
 from app.core.config import Settings, get_settings
+from app.domain.entities.user import User, UserRole
+from app.infrastructure.repositories.user_repository import UserRepository
 
 router = APIRouter()
 
@@ -62,6 +64,7 @@ async def invite_company_user(
     _: AdminUser,
     settings: Settings = Depends(get_settings),
 ):
+    invited_email = data.email.lower()
     service = CompanyService()
     company = await service.get_by_id(company_id)
     if not company:
@@ -75,7 +78,7 @@ async def invite_company_user(
     redirect_url = f"{settings.frontend_base_url.rstrip('/')}/sign-up"
 
     payload = {
-        "email_address": data.email,
+        "email_address": invited_email,
         "redirect_url": redirect_url,
         "public_metadata": {"role": "client", "company_id": str(company_id)},
         "notify": True,
@@ -94,4 +97,32 @@ async def invite_company_user(
             detail=f"Failed to create invitation: {response.text}",
         )
 
-    return response.json()
+    invitation = response.json()
+
+    # Pre-provision an invite-only client user in Supabase so the app can link the Clerk account by email later.
+    user_repo = UserRepository()
+    existing = await user_repo.find_by_email(invited_email)
+    if existing:
+        if existing.role != UserRole.CLIENT:
+            raise HTTPException(status_code=400, detail="This email is already used by a non-client user.")
+        if existing.company_id and existing.company_id != company_id:
+            raise HTTPException(status_code=400, detail="This client user is already associated with another company.")
+        if existing.company_id is None:
+            existing.company_id = company_id
+        if existing.name != company.name:
+            existing.name = company.name
+        await user_repo.update(existing)
+    else:
+        invitation_id = invitation.get("id") or uuid4()
+        placeholder_clerk_id = f"invitation:{invitation_id}"
+        invited_user = User(
+            id=uuid4(),
+            clerk_id=placeholder_clerk_id,
+            name=company.name,
+            email=invited_email,
+            role=UserRole.CLIENT,
+            company_id=company_id,
+        )
+        await user_repo.create(invited_user)
+
+    return invitation
